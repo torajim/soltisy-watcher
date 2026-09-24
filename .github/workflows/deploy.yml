@@ -13,6 +13,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  issues: write
 
 concurrency:
   group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.ref) || 'pages' }}
@@ -21,6 +22,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      failed: ${{ steps.check.outputs.failed }}
     steps:
       - uses: actions/checkout@v4
 
@@ -60,6 +63,14 @@ jobs:
         working-directory: crawler
         run: python -m watcher
 
+      - name: Check brand results
+        id: check
+        if: github.event_name != 'pull_request'
+        run: |
+          failed=$(python3 -c "import json; d=json.load(open('site/data/products.json')); print(', '.join(b['name'] for b in d['brands'] if not b['ok']))")
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+          python3 -c "import json; d=json.load(open('site/data/products.json')); print('| 브랜드 | 결과 | 상품 수 |\n|---|---|---|'); [print(f\"| {b['name']} | {'✅' if b['ok'] else '❌ 실패 (이전 데이터 유지)'} | {b['count']} |\") for b in d['brands']]" >> "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/configure-pages@v5
         if: github.event_name != 'pull_request'
 
@@ -78,3 +89,48 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # 수집 실패 시 저장소 주인에게 할당된 이슈를 만들어 GitHub 이메일 알림이 가게 한다.
+  # 이미 열린 알림 이슈가 있으면 댓글을 달고, 모든 브랜드가 정상으로 돌아오면 자동으로 닫는다.
+  notify:
+    needs: [build, deploy]
+    if: always() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          FAILED: ${{ needs.build.outputs.failed }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const label = "crawl-failure";
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const failed = process.env.FAILED;
+            const buildFailed = process.env.BUILD_RESULT !== "success";
+            const deployFailed = process.env.DEPLOY_RESULT !== "success";
+
+            const { data: open } = await github.rest.issues.listForRepo({ owner, repo, labels: label, state: "open" });
+
+            if (!failed && !buildFailed && !deployFailed) {
+              for (const issue of open) {
+                await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: `✅ 모든 브랜드 수집이 정상으로 돌아왔어요. ([실행 기록](${runUrl}))` });
+                await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: "closed", state_reason: "completed" });
+              }
+              return;
+            }
+
+            let reason;
+            if (failed) reason = `수집 실패 브랜드: **${failed}** (앱에는 직전 데이터를 계속 보여줘요)`;
+            else if (buildFailed) reason = "테스트 또는 전체 수집이 실패해서 이번 업데이트가 배포되지 않았어요. 앱은 이전 버전 그대로예요.";
+            else reason = "GitHub Pages 배포가 실패했어요.";
+            const body = `${reason}\n\n[실행 기록 보기](${runUrl})`;
+
+            if (open.length) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: open[0].number, body });
+            } else {
+              try { await github.rest.issues.createLabel({ owner, repo, name: label, color: "d73a4a" }); } catch (e) { /* 이미 있음 */ }
+              await github.rest.issues.create({ owner, repo, title: "⚠️ 신상품 수집 실패", body, labels: [label], assignees: [owner] });
+            }
+            core.setFailed(reason);

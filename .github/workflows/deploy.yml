@@ -1,0 +1,74 @@
+name: Crawl & Deploy
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # 3시간마다 (UTC 기준 매 3시간 정각 +17분)
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: crawler/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install crawler
+        working-directory: crawler
+        run: pip install -r requirements.txt
+
+      - name: Test crawler
+        working-directory: crawler
+        run: pytest -q
+
+      - name: Test web app
+        working-directory: site
+        run: npm test
+
+      # 한 브랜드가 실패해도 이전 배포본의 그 브랜드 데이터를 유지하기 위해 먼저 받아온다
+      - name: Fetch previous data
+        continue-on-error: true
+        run: |
+          mkdir -p site/data
+          url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/data/products.json"
+          curl -fsSL "$url" -o site/data/products.json || rm -f site/data/products.json
+
+      - name: Crawl
+        working-directory: crawler
+        run: python -m watcher
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

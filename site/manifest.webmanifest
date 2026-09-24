@@ -1,0 +1,12 @@
+{
+  "name": "Soltisy Watcher",
+  "short_name": "Soltisy",
+  "description": "솔리드옴므 · 타임옴므 · 시스템옴므 신상품",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0b0c",
+  "theme_color": "#0b0b0c",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

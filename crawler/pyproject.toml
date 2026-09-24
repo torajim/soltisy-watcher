@@ -1,0 +1,4 @@
+# 의존성은 requirements.txt 참고. 여기서는 pytest 설정만 둔다.
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

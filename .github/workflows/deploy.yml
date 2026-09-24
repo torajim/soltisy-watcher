@@ -3,6 +3,7 @@ name: Crawl & Deploy
 on:
   push:
     branches: [main]
+  pull_request:
   schedule:
     # 3시간마다 (UTC 기준 매 3시간 정각 +17분)
     - cron: "17 */3 * * *"
@@ -14,8 +15,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.ref) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -47,6 +48,7 @@ jobs:
 
       # 한 브랜드가 실패해도 이전 배포본의 그 브랜드 데이터를 유지하기 위해 먼저 받아온다
       - name: Fetch previous data
+        if: github.event_name != 'pull_request'
         continue-on-error: true
         run: |
           mkdir -p site/data
@@ -54,16 +56,20 @@ jobs:
           curl -fsSL "$url" -o site/data/products.json || rm -f site/data/products.json
 
       - name: Crawl
+        if: github.event_name != 'pull_request'
         working-directory: crawler
         run: python -m watcher
 
       - uses: actions/configure-pages@v5
+        if: github.event_name != 'pull_request'
 
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
         with:
           path: site
 
   deploy:
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     environment:

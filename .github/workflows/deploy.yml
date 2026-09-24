@@ -123,7 +123,7 @@ jobs:
 
             let reason;
             if (failed) reason = `수집 실패 브랜드: **${failed}** (앱에는 직전 데이터를 계속 보여줘요)`;
-            else if (buildFailed) reason = "테스트 또는 전체 수집이 실패해서 이번 업데이트가 배포되지 않았어요. 앱은 이전 버전 그대로예요.";
+            else if (buildFailed) reason = "빌드 단계(테스트 · 수집 · Pages 설정 중 하나)가 실패해서 이번 업데이트가 배포되지 않았어요. 앱은 이전 버전 그대로예요. 실패한 단계는 실행 기록에서 확인하세요.";
             else reason = "GitHub Pages 배포가 실패했어요.";
             const body = `${reason}\n\n[실행 기록 보기](${runUrl})`;
 

@@ -92,6 +92,13 @@ def test_handsome_fetch_skips_women_and_pages():
     products = src.fetch()
 
     assert [p.id for p in products] == ["timehomme:TH2G8WJM900M"]
+
+
+def test_handsome_fetch_skips_goods_when_detail_fails():
+    lst = load_json("handsome_list.json")
+    http = FakeHttp({"categoryGoodsList": lst, "/goods/": {"code": "9999", "message": "error"}})
+    src = thehandsome.TheHandsomeSource("timehomme", "TIME HOMME", http, brand_no="BR06", limit=10)
+    assert src.fetch() == []
     list_call = http.calls[0]
     assert list_call[1]["sortGbn"] == "10" and list_call[1]["brandNo"] == "BR06"
     # 목록이 20개 미만이면 다음 페이지를 요청하지 않는다

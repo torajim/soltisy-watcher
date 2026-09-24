@@ -54,6 +54,15 @@ def test_normalize_all_first_wins():
         (("블랙 스트라이프 카라넥 가디건",), "top"),
         (("라이트 블루 스트레이트 데님 팬츠",), "bottom"),
         (("배색 스웨이드 레이스업 스니커즈",), "shoes"),
+        # 품목명은 맨 끝에 오므로 마지막 키워드를 따른다
+        (("인디고 데님 재킷",), "top"),
+        (("워시드 데님 셔츠",), "top"),
+        (("카고 재킷",), "top"),
+        (("부츠컷 데님 팬츠",), "bottom"),
+        (("bootcut jeans",), "bottom"),
+        (("첼시 부츠",), "shoes"),
+        (("수트팬츠", "팬츠", "남성"), "bottom"),
+        (("케이블 울 글러브",), "etc"),
     ],
 )
 def test_classify(texts, expected):

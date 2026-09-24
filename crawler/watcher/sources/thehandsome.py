@@ -159,7 +159,9 @@ class TheHandsomeSource(Source):
                 break
             goods_no = goods["goodsNo"]
             detail = self._payload(f"{API}/goods/1/ko/goods/{goods_no}")
-            categories = [c.get("dispCtgNm") for c in (detail or {}).get("dispCtgList") or []]
+            if detail is None:
+                continue  # 상세가 없으면 여성 라인 여부도, 사이즈도 알 수 없으므로 건너뛴다
+            categories = [c.get("dispCtgNm") for c in detail.get("dispCtgList") or []]
             if categories and categories[0] == WOMEN_CATEGORY:
                 continue  # 옴므 브랜드에 섞여 있는 여성 라인은 제외
             actual = self._payload(f"{API}/goods/1/ko/goods/{goods_no}/actualSizes")

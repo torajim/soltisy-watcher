@@ -350,7 +350,9 @@ for (const dlg of document.querySelectorAll("dialog.sheet")) {
 }
 
 document.addEventListener("keydown", (e) => {
-  if (document.querySelector("dialog[open]") || e.target.closest?.("input")) return;
+  if (document.querySelector("dialog[open]") || e.target.closest?.("input, textarea, select")) return;
+  // 버튼/링크에 포커스가 있을 때 Enter 는 그 요소의 기본 동작에 맡긴다
+  if (e.key === "Enter" && e.target.closest?.("button, a")) return;
   if (e.key === "ArrowDown" || e.key === "j") { e.preventDefault(); goTo(state.current + 1); }
   else if (e.key === "ArrowUp" || e.key === "k") { e.preventDefault(); goTo(state.current - 1); }
   else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {

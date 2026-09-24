@@ -1,0 +1,28 @@
+# 수집할 브랜드 목록. 브랜드를 추가하려면 [[brand]] 블록을 하나 더 적으면 됩니다.
+#
+# source = "thehandsome" : 더한섬닷컴 입점 브랜드. brand_no 는 더한섬 브랜드 코드
+#                          (https://www.thehandsome.com/api/display/1/ko/brand/getDispCtgBrandList 에서 확인)
+# source = "cafe24"      : Cafe24 기반 자체몰. new_category_no 는 '신상품' 카테고리 번호
+#                          (목록 URL 의 /product/list.html?cate_no=XX)
+
+[[brand]]
+id = "solidhomme"
+name = "SOLID HOMME"
+source = "cafe24"
+base_url = "https://www.solidhomme.com"
+new_category_no = 83
+limit = 60
+
+[[brand]]
+id = "timehomme"
+name = "TIME HOMME"
+source = "thehandsome"
+brand_no = "BR06"
+limit = 60
+
+[[brand]]
+id = "systemhomme"
+name = "SYSTEM HOMME"
+source = "thehandsome"
+brand_no = "BR07"
+limit = 60

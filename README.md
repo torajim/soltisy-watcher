@@ -59,7 +59,8 @@ python3 -m http.server 8000    # http://localhost:8000
 
 1. 저장소 **Settings → Pages → Build and deployment → Source** 를 **GitHub Actions** 로 설정
 2. `main` 브랜치에 푸시하면 테스트 → 수집 → 배포. 이후 3시간마다 자동 갱신 (Actions 탭에서 수동 실행도 가능)
-3. 주소: `https://<계정>.github.io/soltisy-watcher/` — 모바일 브라우저에서 "홈 화면에 추가"하면 앱처럼 쓸 수 있음
+3. 주소: `https://torajim.github.io/soltisy-watcher/` — 모바일 브라우저에서 "홈 화면에 추가"하면 앱처럼 쓸 수 있음
+   (`torajim.github.io` 사용자 사이트와는 별개의 하위 경로라 서로 영향이 없음)
 
 한 브랜드 수집이 실패하면 직전 배포본의 그 브랜드 데이터를 유지합니다.
 
@@ -78,5 +79,5 @@ python3 -m http.server 8000    # http://localhost:8000
 
 홈 화면 아이콘으로 열면 주소창 없이 전체 화면으로 실행됩니다. 데이터는 서버에서 3시간마다 갱신되므로 따로 업데이트할 필요가 없습니다.
 
-> GitHub Pages 사이트는 저장소가 비공개여도 **주소를 아는 누구나 볼 수 있습니다** (브랜드 공개 상품 정보만 담겨 있고, 내 사이즈 정보는 폰에만 저장됨).
-> 비공개 저장소에서 Pages 를 쓰려면 GitHub Pro 이상 요금제가 필요합니다.
+> 사이트에는 브랜드의 공개 상품 정보만 담겨 있고, 내 사이즈 정보는 폰(브라우저)에만 저장되어 서버로 가지 않습니다.
+> 저장소를 비공개로 되돌리면 무료 요금제에서는 GitHub Pages 가 꺼지니 주의하세요.

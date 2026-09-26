@@ -47,3 +47,15 @@ export function timeAgo(iso, now = Date.now()) {
   if (h < 24) return `${h}시간 전`;
   return `${Math.round(h / 24)}일 전`;
 }
+
+/**
+ * 저장해 둔 위치를 현재 목록의 인덱스로 바꾼다.
+ * 상품 id 로 찾고(새 상품이 앞에 추가돼도 같은 상품으로 돌아감), 없어졌으면 비슷한 순서로 간다.
+ */
+export function restoreIndex(list, saved) {
+  if (!saved || !list.length) return 0;
+  const i = list.findIndex((p) => p.id === saved.id);
+  if (i >= 0) return i;
+  const n = Number(saved.index);
+  return Number.isInteger(n) && n > 0 ? Math.min(n, list.length - 1) : 0;
+}

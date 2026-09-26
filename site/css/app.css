@@ -124,7 +124,8 @@ button, input { font: inherit; color: inherit; }
   writing-mode: vertical-rl; letter-spacing: .05em;
 }
 .toast {
-  position: fixed; left: 50%; bottom: calc(var(--safe-bottom) + 24px); transform: translateX(-50%); z-index: 50;
+  /* 하단 버튼을 가리지 않도록 상단 필터 바로 아래에 띄운다 */
+  position: fixed; left: 50%; top: calc(var(--safe-top) + 112px); transform: translateX(-50%); z-index: 50;
   background: rgba(245,245,244,.95); color: #111; padding: 10px 14px; border-radius: 12px; font-size: 13px; font-weight: 600;
   max-width: calc(100% - 32px); text-align: center;
 }
@@ -178,3 +179,6 @@ button, input { font: inherit; color: inherit; }
 
 @media (prefers-reduced-motion: reduce) { .feed, .gallery { scroll-behavior: auto; } }
 .gallery .state { flex: none; width: 100%; }
+.toast { display: flex; align-items: center; gap: 12px; width: max-content; }
+.toast button { border: 0; background: #111; color: var(--fg); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.toast[hidden] { display: none; }

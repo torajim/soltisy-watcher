@@ -1,6 +1,6 @@
-import { TYPE_FILTERS, discountRate, filterProducts, formatPrice, interleave, timeAgo } from "./feed.js";
+import { TYPE_FILTERS, discountRate, filterProducts, formatPrice, interleave, restoreIndex, timeAgo } from "./feed.js";
 import { MEASURE_FIELDS, MEASURE_LABELS, formatDiff, hasProfile, parseLabelList, recommend } from "./sizing.js";
-import { loadPrefs, loadProfile, savePrefs, saveProfile } from "./store.js";
+import { loadPosition, loadPrefs, loadProfile, savePosition, savePrefs, saveProfile } from "./store.js";
 import * as tryon from "./tryon.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -87,7 +87,6 @@ function setPref(key, value) {
   if (key === "brand") state.prefs.type = "all";
   savePrefs(state.prefs);
   render();
-  feed.scrollTo({ top: 0 });
 }
 
 // ---------- 피드 ----------
@@ -102,9 +101,23 @@ function render() {
   const tpl = $("#cardTpl");
   const cards = state.list.map((p, i) => buildCard(tpl, p, i));
   feed.replaceChildren(...cards);
+
+  // 필터(브랜드·종류)마다 마지막으로 보던 상품에서 이어서 보여준다
+  const saved = loadPosition(positionKey());
+  const start = restoreIndex(state.list, saved);
+  state.current = start;
+  if (start > 0) {
+    feed.scrollTop = cards[start].offsetTop;
+    toast(`${start + 1}번째부터 이어서 봐요`, { label: "처음부터", onClick: () => goTo(0) }, 4000);
+  } else {
+    feed.scrollTop = 0;
+  }
   observeCards(cards);
-  state.current = 0;
   updateCounter();
+}
+
+function positionKey() {
+  return `${state.prefs.brand}|${state.prefs.type}`;
 }
 
 function buildCard(tpl, p, index) {
@@ -198,6 +211,7 @@ function observeCards(cards) {
         if (e.isIntersecting) {
           state.current = Number(e.target.dataset.index);
           updateCounter();
+          savePosition(positionKey(), { id: state.list[state.current].id, index: state.current });
         }
       }
     },
@@ -334,12 +348,24 @@ function setupSettings() {
 // ---------- 기타 ----------
 
 let toastTimer;
-function toast(msg) {
+function toast(msg, action, duration = 2200) {
   const t = $("#toast");
-  t.textContent = msg;
+  t.replaceChildren(msg);
+  if (action) {
+    t.append(
+      el("button", {
+        type: "button",
+        text: action.label,
+        onclick: () => {
+          t.hidden = true;
+          action.onClick();
+        },
+      }),
+    );
+  }
   t.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (t.hidden = true), 2200);
+  toastTimer = setTimeout(() => (t.hidden = true), duration);
 }
 
 // 시트 바깥(backdrop) 탭하면 닫기

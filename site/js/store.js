@@ -3,6 +3,7 @@ import { emptyProfile } from "./sizing.js";
 
 const PROFILE_KEY = "soltisy.profile.v1";
 const PREFS_KEY = "soltisy.prefs.v1";
+const POSITION_KEY = "soltisy.position.v1";
 
 function read(key) {
   try {
@@ -38,3 +39,14 @@ export function loadProfile() {
 export const saveProfile = (p) => write(PROFILE_KEY, p);
 export const loadPrefs = () => ({ brand: "all", type: "all", ...(read(PREFS_KEY) || {}) });
 export const savePrefs = (p) => write(PREFS_KEY, p);
+
+// 필터 조합별 마지막으로 본 상품: { "all|all": { id, index }, ... }
+export function loadPosition(key) {
+  return (read(POSITION_KEY) || {})[key] || null;
+}
+
+export function savePosition(key, pos) {
+  const all = read(POSITION_KEY) || {};
+  all[key] = pos;
+  return write(POSITION_KEY, all);
+}

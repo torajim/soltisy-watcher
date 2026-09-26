@@ -59,3 +59,10 @@ export function restoreIndex(list, saved) {
   const n = Number(saved.index);
   return Number.isInteger(n) && n > 0 ? Math.min(n, list.length - 1) : 0;
 }
+
+/** 이미지를 붙여둘 카드 범위 (현재 카드 앞 1장 ~ 뒤 2장). 나머지 카드는 이미지를 뗀다. */
+export function imageWindow(current, total, before = 1, after = 2) {
+  if (total <= 0) return { from: 0, to: -1 };
+  const c = Math.max(0, Math.min(total - 1, current));
+  return { from: Math.max(0, c - before), to: Math.min(total - 1, c + after) };
+}

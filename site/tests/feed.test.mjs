@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { discountRate, filterProducts, formatPrice, interleave, restoreIndex, timeAgo } from "../js/feed.js";
+import { discountRate, filterProducts, formatPrice, imageWindow, interleave, restoreIndex, timeAgo } from "../js/feed.js";
 
 const P = (brand, rank, type = "top") => ({ id: `${brand}:${rank}`, brand, rank, type, price: 100, originalPrice: 100 });
 
@@ -39,4 +39,12 @@ test("이어보기 위치 복원", () => {
   assert.equal(restoreIndex(list, { id: "gone", index: 1 }), 1); // 없어진 상품이면 비슷한 순서
   assert.equal(restoreIndex(list, { id: "gone", index: 99 }), 3); // 범위를 넘으면 마지막
   assert.equal(restoreIndex([], { id: "a:1", index: 2 }), 0);
+});
+
+test("이미지를 붙여둘 카드 범위", () => {
+  assert.deepEqual(imageWindow(0, 130), { from: 0, to: 2 });
+  assert.deepEqual(imageWindow(50, 130), { from: 49, to: 52 });
+  assert.deepEqual(imageWindow(129, 130), { from: 128, to: 129 });
+  assert.deepEqual(imageWindow(5, 3), { from: 1, to: 2 }); // 범위를 벗어난 현재 위치
+  assert.deepEqual(imageWindow(0, 0), { from: 0, to: -1 });
 });

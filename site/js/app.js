@@ -1,4 +1,4 @@
-import { TYPE_FILTERS, discountRate, filterProducts, formatPrice, interleave, restoreIndex, timeAgo } from "./feed.js";
+import { TYPE_FILTERS, discountRate, filterProducts, formatPrice, imageWindow, interleave, restoreIndex, timeAgo } from "./feed.js";
 import { MEASURE_FIELDS, MEASURE_LABELS, formatDiff, hasProfile, parseLabelList, recommend } from "./sizing.js";
 import { loadPosition, loadPrefs, loadProfile, savePosition, savePrefs, saveProfile } from "./store.js";
 import * as tryon from "./tryon.js";
@@ -112,6 +112,7 @@ function render() {
   } else {
     feed.scrollTop = 0;
   }
+  updateImageWindow();
   observeCards(cards);
   updateCounter();
 }
@@ -124,17 +125,9 @@ function buildCard(tpl, p, index) {
   const card = tpl.content.firstElementChild.cloneNode(true);
   card.dataset.index = index;
 
+  // 이미지는 여기서 만들지 않는다. 현재 카드 주변만 updateImageWindow() 가 채운다.
   const gallery = $(".gallery", card);
   const dots = $(".dots", card);
-  p.images.forEach((src, i) => {
-    const eager = index < 2 && i === 0;
-    const img = el("img", { src, alt: "", loading: eager ? "eager" : "lazy", decoding: "async", draggable: "false" });
-    const dot = el("i", { class: i === 0 ? "on" : "" });
-    img.addEventListener("error", () => onImageError(img, dot, card));
-    gallery.append(img);
-    dots.append(dot);
-  });
-  if (p.images.length < 2) dots.hidden = true;
   gallery.addEventListener("scroll", () => {
     const i = Math.round(gallery.scrollLeft / gallery.clientWidth);
     [...dots.children].forEach((d, j) => d.classList.toggle("on", i === j));
@@ -163,12 +156,54 @@ function buildCard(tpl, p, index) {
   return card;
 }
 
+// ---------- 이미지 메모리 관리 ----------
+// 사진을 한 번 올리면 계속 들고 있으면 수십 장 넘기는 사이 디코딩된 이미지가 1GB 를 넘어
+// iOS(특히 홈 화면 앱)가 페이지를 강제로 다시 로드한다. 현재 카드 주변만 이미지를 붙이고
+// 멀어진 카드는 이미지를 떼어 메모리를 돌려준다.
+
+function hydrateCard(card) {
+  if (card.dataset.hydrated) return;
+  card.dataset.hydrated = "1";
+  const p = state.list[Number(card.dataset.index)];
+  const gallery = $(".gallery", card);
+  const dots = $(".dots", card);
+  const isCurrent = Number(card.dataset.index) === state.current;
+  p.images.forEach((src, i) => {
+    const img = el("img", { src, alt: "", loading: isCurrent && i === 0 ? "eager" : "lazy", decoding: "async", draggable: "false" });
+    const dot = el("i", { class: i === 0 ? "on" : "" });
+    img.addEventListener("error", () => onImageError(img, dot, card));
+    gallery.append(img);
+    dots.append(dot);
+  });
+  dots.hidden = p.images.length < 2;
+}
+
+function dehydrateCard(card) {
+  if (!card.dataset.hydrated) return;
+  delete card.dataset.hydrated;
+  const gallery = $(".gallery", card);
+  // src 를 비워야 WebKit 이 디코딩된 비트맵을 바로 놓아준다
+  for (const img of gallery.querySelectorAll("img")) img.src = "data:,";
+  gallery.replaceChildren();
+  gallery.scrollLeft = 0;
+  $(".dots", card).replaceChildren();
+}
+
+function updateImageWindow() {
+  const cards = feed.querySelectorAll(".card");
+  const { from, to } = imageWindow(state.current, cards.length);
+  cards.forEach((card, i) => (i >= from && i <= to ? hydrateCard(card) : dehydrateCard(card)));
+}
+
 // 이미지 로드 실패: 한 번 재시도 후 그 컷을 빼고, 전부 실패하면 안내 문구를 보여준다.
 function onImageError(img, dot, card) {
+  if (!img.isConnected) return; // 이미 화면에서 떼어낸 이미지
   if (!img.dataset.retried) {
     img.dataset.retried = "1";
     const src = img.src;
-    setTimeout(() => (img.src = src + (src.includes("?") ? "&" : "?") + "r=1"), 1200);
+    setTimeout(() => {
+      if (img.isConnected) img.src = src + (src.includes("?") ? "&" : "?") + "r=1";
+    }, 1200);
     return;
   }
   img.remove();
@@ -211,6 +246,7 @@ function observeCards(cards) {
         if (e.isIntersecting) {
           state.current = Number(e.target.dataset.index);
           updateCounter();
+          updateImageWindow();
           savePosition(positionKey(), { id: state.list[state.current].id, index: state.current });
         }
       }

@@ -40,6 +40,10 @@ def run(brands: list[dict], out: Path, only: set[str] | None = None, http: Http 
     for conf in brands:
         info = {"id": conf["id"], "name": conf["name"], "ok": False, "count": 0}
         brand_info.append(info)
+        if conf["source"] == "link":
+            # 수집하지 않고 앱에 공식 페이지 바로가기 칩만 보여주는 브랜드
+            info.update(ok=True, link=conf["url"])
+            continue
         if only and conf["id"] not in only:
             kept = previous.get(conf["id"], [])
             products.extend(kept)

@@ -4,6 +4,8 @@
 #                          (https://www.thehandsome.com/api/display/1/ko/brand/getDispCtgBrandList 에서 확인)
 # source = "cafe24"      : Cafe24 기반 자체몰. new_category_no 는 '신상품' 카테고리 번호
 #                          (목록 URL 의 /product/list.html?cate_no=XX)
+# source = "link"        : 수집하지 않음. 앱 상단에 url 로 가는 바로가기 칩만 표시
+#                          (자동 수집을 막아 둔 사이트용)
 
 [[brand]]
 id = "solidhomme"
@@ -26,3 +28,16 @@ name = "SYSTEM HOMME"
 source = "thehandsome"
 brand_no = "BR07"
 limit = 60
+
+# 랄프로렌 공식몰은 봇 차단(Akamai)으로 자동 수집이 불가해 바로가기만 둔다.
+[[brand]]
+id = "polo"
+name = "POLO"
+source = "link"
+url = "https://www.ralphlauren.co.kr/men"
+
+[[brand]]
+id = "rrl"
+name = "RRL"
+source = "link"
+url = "https://www.ralphlauren.co.kr/en/men/rrl?country=korea"

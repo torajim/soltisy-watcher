@@ -182,4 +182,19 @@ def test_brands_config_is_valid():
     ids = [b["id"] for b in brands]
     assert len(ids) == len(set(ids))
     assert {"solidhomme", "timehomme", "systemhomme"} <= set(ids)
-    assert all(b["source"] in SOURCE_TYPES for b in brands)
+    assert all(b["source"] in SOURCE_TYPES or (b["source"] == "link" and b["url"].startswith("https://")) for b in brands)
+
+
+def test_link_brand_is_not_crawled(tmp_path, monkeypatch):
+    from watcher import __main__ as main_mod
+
+    def boom(conf, http):
+        raise AssertionError("link 브랜드는 수집하면 안 됨")
+
+    monkeypatch.setattr(main_mod, "create_source", boom)
+    out = tmp_path / "products.json"
+    ok = run([{"id": "polo", "name": "POLO", "source": "link", "url": "https://example.com/men"}], out, http=object())
+    data = json.loads(out.read_text("utf-8"))
+    assert ok == 0
+    assert data["brands"] == [{"id": "polo", "name": "POLO", "ok": True, "count": 0, "link": "https://example.com/men"}]
+    assert data["products"] == []

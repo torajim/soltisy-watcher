@@ -182,3 +182,4 @@ button, input { font: inherit; color: inherit; }
 .toast { display: flex; align-items: center; gap: 12px; width: max-content; }
 .toast button { border: 0; background: #111; color: var(--fg); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 .toast[hidden] { display: none; }
+.chip.link { text-decoration: none; border-style: dashed; }

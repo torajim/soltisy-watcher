@@ -42,7 +42,8 @@ async function load() {
   }
   const brandOrder = state.data.brands.map((b) => b.id);
   state.all = interleave(state.data.products, brandOrder);
-  if (state.prefs.brand !== "all" && !brandOrder.includes(state.prefs.brand)) state.prefs.brand = "all";
+  const feedBrandIds = state.data.brands.filter((b) => !b.link).map((b) => b.id);
+  if (state.prefs.brand !== "all" && !feedBrandIds.includes(state.prefs.brand)) state.prefs.brand = "all";
   render();
 }
 
@@ -57,7 +58,9 @@ function renderChips() {
   const brands = $("#brandChips");
   const counts = {};
   for (const p of state.all) counts[p.brand] = (counts[p.brand] || 0) + 1;
-  const items = [{ id: "all", name: "ALL", count: state.all.length }, ...state.data.brands.map((b) => ({ id: b.id, name: b.name, count: counts[b.id] || 0 }))];
+  const feedBrands = state.data.brands.filter((b) => !b.link);
+  const linkBrands = state.data.brands.filter((b) => b.link);
+  const items = [{ id: "all", name: "ALL", count: state.all.length }, ...feedBrands.map((b) => ({ id: b.id, name: b.name, count: counts[b.id] || 0 }))];
   brands.replaceChildren(
     ...items.map((b) =>
       el(
@@ -67,6 +70,8 @@ function renderChips() {
         el("span", { class: "n", text: b.count }),
       ),
     ),
+    // 자동 수집이 안 되는 브랜드는 공식 페이지 바로가기로만 둔다
+    ...linkBrands.map((b) => el("a", { class: "chip link", href: b.link, target: "_blank", rel: "noopener" }, b.name, el("span", { class: "n", text: "↗" }))),
   );
 
   const inBrand = filterProducts(state.all, { brand: state.prefs.brand });

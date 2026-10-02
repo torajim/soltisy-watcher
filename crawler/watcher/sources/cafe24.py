@@ -20,35 +20,55 @@ from .base import Http, Source
 
 log = logging.getLogger(__name__)
 
-_PRODUCT_NO = re.compile(r"product_no=(\d+)")
+_PRODUCT_NO = re.compile(r"product_no=(\d+)|/product/[^/]+/(\d+)/")
+
+
+def _product_no(box, link) -> str | None:
+    m = re.match(r"anchorBoxId_(\d+)$", box.get("id") or "")
+    if m:
+        return m.group(1)
+    m = _PRODUCT_NO.search(link["href"]) if link else None
+    return (m.group(1) or m.group(2)) if m else None
 
 
 def parse_list(html: str, base_url: str, cate_no: int) -> list[dict]:
-    """목록 페이지 → [{product_no, name, url, thumb, price, original_price}] (페이지 표시 순서)."""
+    """목록 페이지 → [{product_no, name, sub_brand, url, thumb, price, original_price, soldout}] (페이지 표시 순서).
+
+    스킨마다 마크업이 달라 두 가지를 지원한다.
+      - 기본 스킨(솔리드옴므): .xans-product-listnormal li / .name / 'KRW 478,000'
+      - 편집숍 스킨(스컬프스토어): li#anchorBoxId_N / .b(브랜드) / .nm / ₩ 가격 + 할인가 / SEO 주소
+    """
     soup = BeautifulSoup(html, "html.parser")
     items: list[dict] = []
     seen: set[str] = set()
-    for box in soup.select(".xans-product-listnormal li.xans-record-"):
-        link = box.select_one(f'a[href*="product_no="][href*="cate_no={cate_no}"]') or box.select_one('a[href*="product_no="]')
-        name_el = box.select_one(".name")
-        if not link or not name_el:
+    # 추천·베스트 블록이 아닌 본 목록(.xans-product-listnormal) 안에서만 찾는다
+    boxes = soup.select('.xans-product-listnormal li[id^="anchorBoxId_"]') or soup.select(".xans-product-listnormal li.xans-record-")
+    for box in boxes:
+        link = (
+            box.select_one(f'a[href*="product_no="][href*="cate_no={cate_no}"]')
+            or box.select_one('a[href*="product_no="]')
+            or box.select_one('a[href^="/product/"]')
+        )
+        name_el = box.select_one(".name") or box.select_one(".nm")
+        no = _product_no(box, link)
+        if not link or not name_el or not no or no in seen:
             continue
-        m = _PRODUCT_NO.search(link["href"])
-        if not m or m.group(1) in seen:
-            continue
-        seen.add(m.group(1))
-        prices = [parse_number(t) for t in (box.select_one(".price") or box).stripped_strings if "KRW" in t or "원" in t]
-        prices = [int(p) for p in prices if p]
+        seen.add(no)
+        # 가격 영역이 없으면 0 (상품명 속 숫자 'M-1965' 등을 가격으로 읽지 않도록 상자 전체로 넓히지 않는다)
+        price_box = box.select_one(".price")
+        prices = [int(n) for n in (parse_number(t) for t in price_box.stripped_strings) if n and n >= 100] if price_box else []
         img = box.select_one("img.first-img") or box.select_one("img")
+        sub_brand = box.select_one(".b")
         items.append(
             {
-                "product_no": m.group(1),
+                "product_no": no,
                 "name": name_el.get_text(" ", strip=True),
-                "url": f"{base_url}/product/detail.html?product_no={m.group(1)}&cate_no={cate_no}",
+                "sub_brand": sub_brand.get_text(" ", strip=True) if sub_brand else "",
+                "url": f"{base_url}/product/detail.html?product_no={no}&cate_no={cate_no}",
                 "thumb": urljoin(base_url, img["src"]) if img and img.get("src") else "",
                 "price": min(prices) if prices else 0,
                 "original_price": max(prices) if prices else 0,
-                "soldout": bool(box.select_one(".thumbnail-soldout:not(.displaynone)")),
+                "soldout": bool(box.select_one(".thumbnail-soldout:not(.displaynone), .sold:not(.displaynone)")),
             }
         )
     return items
@@ -119,8 +139,8 @@ def parse_images(html: str) -> list[str]:
         if meta.get("content"):
             images.append(meta["content"])
             break
-    block = soup.select_one(".xans-product-addimage")
-    for img in (block.select("img") if block else []):
+    # 스킨에 따라 추가 이미지가 한 블록 안에 있거나(솔리드옴므) 슬라이드마다 따로 있다(스컬프스토어)
+    for img in soup.select(".xans-product-addimage img"):
         src = img.get("src") or ""
         if "/extra/small/" in src:
             images.append(src.replace("/extra/small/", "/extra/big/"))
@@ -147,10 +167,13 @@ def build_product(brand_id: str, brand_name: str, item: dict, detail_html: str |
 
     sizes = [SizeOption(label=label, in_stock=ok and not item.get("soldout"), measurements=table.get(label, {})) for label, ok in options]
     mkeys = {k for m in table.values() for k in m}
+    # 편집숍은 상품마다 실제 브랜드를 앞에 붙여 보여준다 (예: "KAPITAL · SCULP STORE")
+    sub = item.get("sub_brand") or ""
+    display = f"{sub} · {brand_name}" if sub and sub.upper() != brand_name.upper() else brand_name
     return Product(
         id=f"{brand_id}:{item['product_no']}",
         brand=brand_id,
-        brand_name=brand_name,
+        brand_name=display,
         name=item["name"],
         url=item["url"],
         images=images,
@@ -166,17 +189,23 @@ def build_product(brand_id: str, brand_name: str, item: dict, detail_html: str |
 
 
 class Cafe24Source(Source):
-    def __init__(self, brand_id: str, brand_name: str, http: Http, base_url: str, new_category_no: int, limit: int = 60):
+    def __init__(
+        self, brand_id: str, brand_name: str, http: Http, base_url: str, new_category_no: int, limit: int = 60, sort_method: int | None = None
+    ):
         super().__init__(brand_id, brand_name, http, limit)
         self.base_url = base_url.rstrip("/")
         self.cate_no = new_category_no
+        self.sort_method = sort_method  # 5 = 신상품순 (신상품 카테고리가 없는 쇼핑몰에서 '전체보기'와 함께 사용)
 
     def list_items(self) -> list[dict]:
         items: list[dict] = []
         seen: set[str] = set()
         page = 1
         while len(items) < self.limit and page <= 10:
-            html = self.http.get_text(f"{self.base_url}/product/list.html", params={"cate_no": self.cate_no, "page": page})
+            params = {"cate_no": self.cate_no, "page": page}
+            if self.sort_method:
+                params["sort_method"] = self.sort_method
+            html = self.http.get_text(f"{self.base_url}/product/list.html", params=params)
             batch = [it for it in parse_list(html, self.base_url, self.cate_no) if it["product_no"] not in seen]
             if not batch:
                 break

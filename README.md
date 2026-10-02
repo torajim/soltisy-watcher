@@ -15,7 +15,7 @@ crawler/            Python 수집기 → site/data/products.json 생성
   watcher/sources/  사이트 유형별 어댑터 (thehandsome, cafe24)
 site/               정적 모바일 웹 앱 (빌드 없음, 바닐라 JS)
   js/sizing.js      사이즈 추천 로직
-.github/workflows/deploy.yml   3시간마다 수집 → GitHub Pages 배포
+.github/workflows/deploy.yml   6시간마다 수집 → GitHub Pages 배포
 ```
 
 | 브랜드 | 출처 | 신상품 기준 |
@@ -58,7 +58,7 @@ python3 -m http.server 8000    # http://localhost:8000
 ## 배포 (GitHub Pages)
 
 1. 저장소 **Settings → Pages → Build and deployment → Source** 를 **GitHub Actions** 로 설정
-2. `main` 브랜치에 푸시하면 테스트 → 수집 → 배포. 이후 3시간마다 자동 갱신 (Actions 탭에서 수동 실행도 가능)
+2. `main` 브랜치에 푸시하면 테스트 → 수집 → 배포. 이후 6시간마다 자동 갱신 (Actions 탭에서 수동 실행도 가능)
 3. 주소: `https://torajim.github.io/soltisy-watcher/` — 모바일 브라우저에서 "홈 화면에 추가"하면 앱처럼 쓸 수 있음
    (`torajim.github.io` 사용자 사이트와는 별개의 하위 경로라 서로 영향이 없음)
 
@@ -77,7 +77,7 @@ python3 -m http.server 8000    # http://localhost:8000
 - **iPhone (Safari)**: 배포 주소 접속 → 공유 버튼 → **홈 화면에 추가**
 - **Android (Chrome)**: 배포 주소 접속 → ⋮ 메뉴 → **홈 화면에 추가** (또는 *앱 설치*)
 
-홈 화면 아이콘으로 열면 주소창 없이 전체 화면으로 실행됩니다. 데이터는 서버에서 3시간마다 갱신되므로 따로 업데이트할 필요가 없습니다.
+홈 화면 아이콘으로 열면 주소창 없이 전체 화면으로 실행됩니다. 데이터는 서버에서 6시간마다 갱신되므로 따로 업데이트할 필요가 없습니다.
 
 > 사이트에는 브랜드의 공개 상품 정보만 담겨 있고, 내 사이즈 정보는 폰(브라우저)에만 저장되어 서버로 가지 않습니다.
 > 저장소를 비공개로 되돌리면 무료 요금제에서는 GitHub Pages 가 꺼지니 주의하세요.

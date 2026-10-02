@@ -5,8 +5,8 @@ on:
     branches: [main]
   pull_request:
   schedule:
-    # 3시간마다 (UTC 기준 매 3시간 정각 +17분)
-    - cron: "17 */3 * * *"
+    # 6시간마다: UTC 00:17·06:17·12:17·18:17 (한국 09:17·15:17·21:17·03:17)
+    - cron: "17 */6 * * *"
   workflow_dispatch:
 
 permissions:

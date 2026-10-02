@@ -86,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.limit:
         for b in brands:
             b["limit"] = args.limit
-    targets = [b for b in brands if not args.only or b["id"] in args.only]
+    targets = [b for b in brands if b["source"] != "link" and (not args.only or b["id"] in args.only)]
     ok = run(brands, args.out, set(args.only) if args.only else None)
     log.info("완료: %d/%d 브랜드 성공 → %s", ok, len(targets), args.out)
     return 0 if ok > 0 else 1

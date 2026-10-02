@@ -2,11 +2,15 @@ from __future__ import annotations
 
 from .base import Http, Source
 from .cafe24 import Cafe24Source
+from .prada import PradaSource
+from .ssf import SsfSource
 from .thehandsome import TheHandsomeSource
 
 SOURCE_TYPES: dict[str, type[Source]] = {
     "cafe24": Cafe24Source,
     "thehandsome": TheHandsomeSource,
+    "ssf": SsfSource,
+    "prada": PradaSource,
 }
 
 

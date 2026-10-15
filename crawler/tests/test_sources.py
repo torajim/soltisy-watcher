@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from watcher.__main__ import run
 from watcher.sources import cafe24, thehandsome
 
@@ -152,7 +154,16 @@ def test_cafe24_build_product():
 
 def test_run_keeps_previous_data_when_brand_fails(tmp_path, monkeypatch):
     out = tmp_path / "products.json"
-    out.write_text(json.dumps({"products": [{"id": "b:1", "brand": "b"}]}), "utf-8")
+    out.write_text(
+        json.dumps(
+            {
+                "generatedAt": "2026-10-01T00:00:00+00:00",
+                "brands": [{"id": "b", "name": "B", "ok": True, "count": 1}],  # updatedAt 이 없던 예전 형식
+                "products": [{"id": "b:1", "brand": "b"}],
+            }
+        ),
+        "utf-8",
+    )
 
     from watcher import __main__ as main_mod
     from watcher.models import Product
@@ -171,7 +182,102 @@ def test_run_keeps_previous_data_when_brand_fails(tmp_path, monkeypatch):
     data = json.loads(out.read_text("utf-8"))
     assert ok == 1
     assert [p["id"] for p in data["products"]] == ["a:1", "b:1"]
-    assert data["brands"][1] == {"id": "b", "name": "B", "ok": False, "count": 1}
+    assert data["brands"][0]["updatedAt"] == data["generatedAt"]
+    # 실패한 브랜드는 마지막으로 성공한 시각을 남긴다
+    assert data["brands"][1] == {"id": "b", "name": "B", "ok": False, "count": 1, "updatedAt": "2026-10-01T00:00:00+00:00"}
+
+    # 다음 실행에서도 계속 실패하면 같은 시각이 유지된다
+    ok = run([{"id": "a", "name": "A", "source": "x"}, {"id": "b", "name": "B", "source": "x"}], out, http=object())
+    data = json.loads(out.read_text("utf-8"))
+    assert data["brands"][1]["updatedAt"] == "2026-10-01T00:00:00+00:00"
+
+
+def test_run_only_keeps_other_brands_status(tmp_path, monkeypatch):
+    out = tmp_path / "products.json"
+    out.write_text(
+        json.dumps(
+            {
+                "generatedAt": "2026-10-02T00:00:00+00:00",
+                "brands": [
+                    {"id": "a", "name": "A", "ok": True, "count": 0, "updatedAt": "2026-10-02T00:00:00+00:00"},
+                    {"id": "b", "name": "B", "ok": True, "count": 1, "updatedAt": "2026-10-01T00:00:00+00:00"},
+                    {"id": "c", "name": "C", "ok": False, "count": 1, "updatedAt": "2026-09-30T00:00:00+00:00"},
+                ],
+                "products": [{"id": "b:1", "brand": "b"}, {"id": "c:1", "brand": "c"}],
+            }
+        ),
+        "utf-8",
+    )
+
+    from watcher import __main__ as main_mod
+    from watcher.models import Product
+
+    class Ok:
+        def fetch(self):
+            return [Product(id="a:1", brand="a", brand_name="A", name="n", url="u", images=["i"], price=1, original_price=1, type="top")]
+
+    def only_a(conf, http):
+        assert conf["id"] == "a", "--only 에 없는 브랜드는 수집하지 않음"
+        return Ok()
+
+    monkeypatch.setattr(main_mod, "create_source", only_a)
+    brands = [{"id": i, "name": i.upper(), "source": "x"} for i in ("a", "b", "c")]
+    run(brands, out, only={"a"}, http=object())
+
+    data = json.loads(out.read_text("utf-8"))
+    assert [p["id"] for p in data["products"]] == ["a:1", "b:1", "c:1"]
+    assert data["brands"][1] == {"id": "b", "name": "B", "ok": True, "count": 1, "updatedAt": "2026-10-01T00:00:00+00:00"}
+    assert data["brands"][2]["ok"] is False  # 직전에 실패한 상태는 그대로
+
+
+# ---------- HTTP 재시도 ----------
+
+
+class _Resp:
+    def __init__(self, status):
+        self.status_code = status
+        self.encoding = "utf-8"
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            import requests
+
+            raise requests.HTTPError(f"{self.status_code}", response=self)
+
+
+def _http_with(statuses, monkeypatch):
+    from watcher.sources import base
+
+    sleeps = []
+    monkeypatch.setattr(base.time, "sleep", sleeps.append)
+    http = base.Http(delay=0)
+    calls = iter(statuses)
+    http.session.get = lambda url, **kw: _Resp(next(calls))
+    return http, sleeps
+
+
+def test_http_does_not_retry_not_found(monkeypatch):
+    import requests
+
+    http, sleeps = _http_with([404, 200], monkeypatch)
+    with pytest.raises(requests.HTTPError):
+        http.get("https://example.com/x")
+    assert sleeps == []
+
+
+def test_http_retries_server_errors_without_sleeping_after_last(monkeypatch):
+    import requests
+
+    http, sleeps = _http_with([503, 429, 500], monkeypatch)
+    with pytest.raises(requests.HTTPError):
+        http.get("https://example.com/x")
+    assert sleeps == [1, 2]
+
+
+def test_http_recovers_after_retry(monkeypatch):
+    http, sleeps = _http_with([502, 200], monkeypatch)
+    assert http.get("https://example.com/x").status_code == 200
+    assert sleeps == [1]
 
 
 def test_brands_config_is_valid():

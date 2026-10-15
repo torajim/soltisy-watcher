@@ -16,6 +16,14 @@ USER_AGENT = (
 )
 
 
+def _retryable(error: requests.RequestException) -> bool:
+    """연결 오류·타임아웃·5xx·429 만 재시도한다."""
+    resp = getattr(error, "response", None)
+    if resp is None:
+        return True
+    return resp.status_code >= 500 or resp.status_code == 429
+
+
 class Http:
     """재시도와 요청 간 지연을 가진 얇은 requests 래퍼."""
 
@@ -38,7 +46,10 @@ class Http:
             except requests.RequestException as e:
                 last_error = e
                 log.warning("GET %s 실패 (%d/%d): %s", url, attempt + 1, self.retries, e)
-                time.sleep(2**attempt)
+                if not _retryable(e):
+                    break  # 404 등은 다시 요청해도 같으므로 바로 포기한다
+                if attempt + 1 < self.retries:
+                    time.sleep(2**attempt)
         raise last_error  # type: ignore[misc]
 
     def get_json(self, url: str, **kwargs) -> dict:

@@ -58,7 +58,7 @@ id = "prada"
 name = "PRADA"
 source = "prada"
 category_path = "/mens/new-in/c/10182KR.html"
-limit = 60
+limit = 24  # 사이트가 ?page= 를 무시해 첫 페이지 24개만 받을 수 있다
 
 # 랄프로렌 공식몰은 봇 차단(Akamai)으로 자동 수집이 불가해 바로가기만 둔다.
 [[brand]]

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { discountRate, filterProducts, formatPrice, imageWindow, interleave, restoreIndex, timeAgo } from "../js/feed.js";
+import { discountRate, filterProducts, formatPrice, imageWindow, interleave, restoreIndex, staleNotice, timeAgo } from "../js/feed.js";
 
 const P = (brand, rank, type = "top") => ({ id: `${brand}:${rank}`, brand, rank, type, price: 100, originalPrice: 100 });
 
@@ -47,4 +47,13 @@ test("이미지를 붙여둘 카드 범위", () => {
   assert.deepEqual(imageWindow(129, 130), { from: 128, to: 129 });
   assert.deepEqual(imageWindow(5, 3), { from: 1, to: 2 }); // 범위를 벗어난 현재 위치
   assert.deepEqual(imageWindow(0, 0), { from: 0, to: -1 });
+});
+
+test("staleNotice: 수집 실패 브랜드만 마지막 성공 시각과 함께 안내", () => {
+  const now = Date.parse("2026-10-15T12:00:00Z");
+  assert.equal(staleNotice({ name: "A", ok: true, updatedAt: "2026-10-15T11:00:00Z" }, now), null);
+  assert.equal(staleNotice({ name: "POLO", ok: true, link: "https://example.com" }, now), null);
+  assert.equal(staleNotice({ name: "B", ok: false, updatedAt: "2026-10-13T12:00:00Z" }, now), "B 수집 실패 · 2일 전 데이터예요");
+  assert.equal(staleNotice({ name: "C", ok: false }, now), "C 수집 실패 · 표시할 데이터가 없어요");
+  assert.equal(staleNotice(undefined, now), null);
 });

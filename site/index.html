@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b0b0c" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="description" content="솔리드옴므 · 타임옴므 · 시스템옴므 신상품을 한 번에" />
+  <meta name="description" content="솔리드옴므 · 타임옴므 · 시스템옴므 · 스컬프스토어 · 비이커 · 프라다 신상품을 한 번에" />
   <title>Soltisy Watcher</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
@@ -22,6 +22,7 @@
       </button>
     </div>
     <nav class="chips small" id="typeChips" aria-label="종류"></nav>
+    <div class="notice" id="brandNotice" role="status" hidden></div>
   </header>
 
   <main id="feed" class="feed" aria-live="polite">
@@ -84,7 +85,7 @@
         <div class="sizes"></div>
         <div class="buttons">
           <button class="btn ghost size-btn" type="button">사이즈</button>
-          <button class="btn ghost tryon-btn" type="button">피팅</button>
+          <button class="btn ghost tryon-btn" type="button" hidden>피팅</button>
           <a class="btn primary go" target="_blank" rel="noopener">상품 보러가기 ↗</a>
         </div>
       </div>

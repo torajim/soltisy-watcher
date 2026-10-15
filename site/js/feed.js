@@ -49,6 +49,16 @@ export function timeAgo(iso, now = Date.now()) {
 }
 
 /**
+ * 이번 수집에 실패해 이전 데이터를 보여주는 브랜드면 안내 문구, 아니면 null.
+ * updatedAt 은 그 브랜드를 마지막으로 성공적으로 수집한 시각이다.
+ */
+export function staleNotice(brand, now = Date.now()) {
+  if (!brand || brand.ok || brand.link) return null;
+  const ago = timeAgo(brand.updatedAt, now);
+  return ago ? `${brand.name} 수집 실패 · ${ago} 데이터예요` : `${brand.name} 수집 실패 · 표시할 데이터가 없어요`;
+}
+
+/**
  * 저장해 둔 위치를 현재 목록의 인덱스로 바꾼다.
  * 상품 id 로 찾고(새 상품이 앞에 추가돼도 같은 상품으로 돌아감), 없어졌으면 비슷한 순서로 간다.
  */

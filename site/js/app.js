@@ -1,4 +1,4 @@
-import { TYPE_FILTERS, discountRate, filterProducts, formatPrice, imageWindow, interleave, restoreIndex, timeAgo } from "./feed.js";
+import { TYPE_FILTERS, discountRate, filterProducts, formatPrice, imageWindow, interleave, restoreIndex, staleNotice, timeAgo } from "./feed.js";
 import { MEASURE_FIELDS, MEASURE_LABELS, formatDiff, hasProfile, parseLabelList, recommend } from "./sizing.js";
 import { loadPosition, loadPrefs, loadProfile, savePosition, savePrefs, saveProfile } from "./store.js";
 import * as tryon from "./tryon.js";
@@ -60,19 +60,33 @@ function renderChips() {
   for (const p of state.all) counts[p.brand] = (counts[p.brand] || 0) + 1;
   const feedBrands = state.data.brands.filter((b) => !b.link);
   const linkBrands = state.data.brands.filter((b) => b.link);
-  const items = [{ id: "all", name: "ALL", count: state.all.length }, ...feedBrands.map((b) => ({ id: b.id, name: b.name, count: counts[b.id] || 0 }))];
+  const items = [
+    { id: "all", name: "ALL", count: state.all.length },
+    ...feedBrands.map((b) => ({ id: b.id, name: b.name, count: counts[b.id] || 0, notice: staleNotice(b) })),
+  ];
   brands.replaceChildren(
     ...items.map((b) =>
       el(
         "button",
-        { class: "chip", type: "button", "aria-pressed": String(state.prefs.brand === b.id), onclick: () => setPref("brand", b.id) },
+        {
+          class: b.notice ? "chip stale" : "chip",
+          type: "button",
+          title: b.notice,
+          "aria-pressed": String(state.prefs.brand === b.id),
+          onclick: () => setPref("brand", b.id),
+        },
         b.name,
-        el("span", { class: "n", text: b.count }),
+        el("span", { class: "n", text: b.notice ? `${b.count} !` : b.count }),
       ),
     ),
     // 자동 수집이 안 되는 브랜드는 공식 페이지 바로가기로만 둔다
     ...linkBrands.map((b) => el("a", { class: "chip link", href: b.link, target: "_blank", rel: "noopener" }, b.name, el("span", { class: "n", text: "↗" }))),
   );
+
+  // 수집에 실패한 브랜드를 고르면 오래된 데이터라는 걸 알려준다
+  const notice = $("#brandNotice");
+  notice.textContent = staleNotice(feedBrands.find((b) => b.id === state.prefs.brand)) || "";
+  notice.hidden = !notice.textContent;
 
   const inBrand = filterProducts(state.all, { brand: state.prefs.brand });
   const types = $("#typeChips");
@@ -152,10 +166,8 @@ function buildCard(tpl, p, index) {
 
   $(".size-btn", card).addEventListener("click", () => openSizeSheet(p));
   if (!p.sizes.length) $(".size-btn", card).hidden = true;
-  const tryBtn = $(".tryon-btn", card);
-  tryBtn.addEventListener("click", () => {
-    if (!tryon.isAvailable()) toast("가상 피팅은 준비 중이에요 👕");
-  });
+  // 가상 피팅이 준비되기 전에는 누를 수 없는 버튼을 보여주지 않는다
+  $(".tryon-btn", card).hidden = !tryon.isAvailable();
 
   fillSizeInfo(card, p);
   return card;

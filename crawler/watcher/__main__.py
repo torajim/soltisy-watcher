@@ -27,12 +27,23 @@ def run(brands: list[dict], out: Path, only: set[str] | None = None, http: Http 
     """
     http = http or Http()
     previous: dict[str, list[dict]] = {}
+    previous_updated: dict[str, str] = {}
+    previous_ok: dict[str, bool] = {}
     if out.exists():
         try:
-            for p in json.loads(out.read_text("utf-8")).get("products", []):
+            old = json.loads(out.read_text("utf-8"))
+            for p in old.get("products", []):
                 previous.setdefault(p["brand"], []).append(p)
-        except (json.JSONDecodeError, KeyError):
+            for b in old.get("brands", []):
+                previous_ok[b["id"]] = bool(b.get("ok"))
+                # 예전 파일에는 updatedAt 이 없다. 그때 성공한 브랜드는 그 파일의 생성 시각을 쓴다.
+                updated = b.get("updatedAt") or (old.get("generatedAt") if b.get("ok") else None)
+                if updated:
+                    previous_updated[b["id"]] = updated
+        except (json.JSONDecodeError, KeyError, TypeError, AttributeError):
             pass
+
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     products: list[dict] = []
     brand_info = []
@@ -45,27 +56,29 @@ def run(brands: list[dict], out: Path, only: set[str] | None = None, http: Http 
             info.update(ok=True, link=conf["url"])
             continue
         if only and conf["id"] not in only:
+            # 이번에 수집 대상이 아닌 브랜드는 실패가 아니다. 이전 상태를 그대로 옮긴다.
             kept = previous.get(conf["id"], [])
             products.extend(kept)
-            info["count"] = len(kept)
+            info.update(ok=previous_ok.get(conf["id"], False), count=len(kept), updatedAt=previous_updated.get(conf["id"]))
             continue
         try:
             fetched = [p.to_json() for p in create_source(conf, http).fetch()]
             if not fetched:
                 raise RuntimeError("상품이 0개")
             products.extend(fetched)
-            info.update(ok=True, count=len(fetched))
+            info.update(ok=True, count=len(fetched), updatedAt=now)
             ok += 1
             log.info("%s: %d개", conf["id"], len(fetched))
         except Exception:
             log.exception("%s 수집 실패 — 이전 데이터 유지", conf["id"])
             kept = previous.get(conf["id"], [])
             products.extend(kept)
-            info["count"] = len(kept)
+            # 앱이 "N시간 전 데이터" 를 보여줄 수 있도록 마지막 성공 시각을 남긴다
+            info.update(count=len(kept), updatedAt=previous_updated.get(conf["id"]))
 
     out.parent.mkdir(parents=True, exist_ok=True)
     payload = {
-        "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generatedAt": now,
         "brands": brand_info,
         "products": products,
     }

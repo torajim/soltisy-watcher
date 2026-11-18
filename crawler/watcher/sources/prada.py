@@ -1,7 +1,8 @@
 """프라다 공식몰(prada.com) — 카테고리 페이지에 들어 있는 상품 검색 결과(Algolia hits)를 읽는다.
 
-페이지 HTML 안에 `"hits":[{...ProductName...}]` 형태의 JSON 이 그대로 있다.
-`?page=` 는 서버에서 무시되어 첫 페이지(최신 24개)만 가져온다.
+2026-11 초부터 페이지가 Nuxt 3 로 바뀌어 hits 가 `__NUXT_DATA__` 의 devalue 페이로드 안에 들어 있다.
+예전 형식(HTML 안에 `"hits":[{...ProductName...}]` JSON 이 그대로 있는 경우)도 계속 읽는다.
+`?page=` 는 서버에서 무시되어 첫 페이지만 가져온다.
 사이즈 정보는 목록에 없어 사이즈 추천은 하지 않는다.
 """
 from __future__ import annotations
@@ -14,6 +15,7 @@ from urllib.parse import quote
 from ..classify import classify
 from ..models import Product
 from .base import Http, Source
+from .nuxt import extract_payload, find_lists, unflatten
 
 log = logging.getLogger(__name__)
 
@@ -22,14 +24,28 @@ SITE = "https://www.prada.com"
 RENDITION = "/_jcr_content/renditions/cq5dam.web.hebebed.1000.1000.jpg"
 
 
+def _is_hit(x) -> bool:
+    return isinstance(x, dict) and "ProductName" in x
+
+
 def parse_hits(html: str) -> list[dict]:
+    payload = extract_payload(html)
+    if payload is not None:
+        lists = find_lists(unflatten(payload), "hits", _is_hit)
+        if lists:
+            return max(lists, key=len)
+    return _parse_inline_hits(html)
+
+
+def _parse_inline_hits(html: str) -> list[dict]:
+    """예전 형식: HTML 안에 hits 배열 JSON 이 그대로 들어 있다."""
     dec = json.JSONDecoder()
     for m in re.finditer(r'"hits":\[', html):
         try:
             arr, _ = dec.raw_decode(html, m.end() - 1)
         except json.JSONDecodeError:
             continue
-        if arr and isinstance(arr[0], dict) and "ProductName" in arr[0]:
+        if arr and _is_hit(arr[0]):
             return arr
     return []
 

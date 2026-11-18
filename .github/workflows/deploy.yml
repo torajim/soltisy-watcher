@@ -50,14 +50,6 @@ jobs:
         working-directory: site
         run: npm test
 
-      # 임시 진단 (PR 에서만): 실패 중인 사이트 응답 확인
-      - name: Probe failing sources
-        if: github.event_name == 'pull_request'
-        continue-on-error: true
-        run: |
-          python .github/scripts/probe.py
-
-
       # 한 브랜드가 실패해도 이전 배포본의 그 브랜드 데이터를 유지하기 위해 먼저 받아온다
       - name: Fetch previous data
         if: github.event_name != 'pull_request'

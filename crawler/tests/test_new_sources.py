@@ -133,3 +133,69 @@ def test_ssf_missing_regular_price_does_not_use_name():
       <span class="lastSalePrc"><em class="dcRt">10%</em> 59,000</span></a></li></ul>"""
     item = ssf.parse_list(html)[0]
     assert (item["price"], item["original_price"]) == (59000, 59000)
+
+
+# ---------- 2026-11 프라다 Nuxt 3 전환 / 비 JSON 응답 ----------
+
+
+def test_prada_parses_nuxt_payload():
+    hits = prada.parse_hits(read("prada_nuxt.html"))
+    assert len(hits) == 3
+    p = prada.build_product("prada", "PRADA", hits[0], "/kr/ko", rank=0)
+    assert p.name == "미디엄 웨이트 리울 다운 재킷"
+    assert p.price == 5850000 and p.color == "블랙"
+    assert p.url.endswith("SGD233_1ACZ_F0002_S_OOO")
+    assert p.images and all(u.endswith(prada.RENDITION) for u in p.images)
+
+
+def test_prada_fetch_from_nuxt_page():
+    class Http:
+        def get_text(self, url, **_):
+            return read("prada_nuxt.html")
+
+    src = prada.PradaSource("prada", "PRADA", Http(), category_path="/mens/new-in/c/10182KR.html", limit=2)
+    assert [p.rank for p in src.fetch()] == [0, 1]
+
+
+def test_nuxt_unflatten_handles_wrappers_and_cycles():
+    from watcher.sources.nuxt import unflatten
+
+    arr = [["Reactive", 1], {"a": 2, "self": 0, "s": 4, "u": -1}, [3, 3], "x", ["Set", 3]]
+    root = unflatten(arr)
+    assert root["a"] == ["x", "x"] and root["s"] == ["x"] and root["u"] is None
+    assert root["self"] is root
+
+
+def test_get_json_retries_non_json_then_reports_body(monkeypatch):
+    from watcher.sources.base import Http
+
+    class Resp:
+        status_code = 200
+        headers = {"Content-Type": "text/html"}
+        url = "https://x/api"
+
+        def __init__(self, text):
+            self.text = text
+            self.content = text.encode()
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            import json
+
+            return json.loads(self.text)
+
+    bodies = iter(["<html>점검 중</html>", '{"code": "0000"}'])
+    http = Http(delay=0, backoff=0)
+    monkeypatch.setattr(http.session, "get", lambda *a, **k: Resp(next(bodies)))
+    assert http.get_json("https://x/api") == {"code": "0000"}
+
+    http = Http(delay=0, backoff=0, retries=2)
+    monkeypatch.setattr(http.session, "get", lambda *a, **k: Resp("<html>점검 중</html>"))
+    try:
+        http.get_json("https://x/api")
+    except RuntimeError as e:
+        assert "점검 중" in str(e) and "HTTP 200" in str(e)
+    else:
+        raise AssertionError("JSON 이 아니면 실패해야 함")

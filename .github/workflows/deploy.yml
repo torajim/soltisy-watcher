@@ -56,7 +56,7 @@ jobs:
         continue-on-error: true
         run: |
           python .github/scripts/probe.py
-          cd crawler && python -m watcher --only timehomme --only prada --only sculpstore --limit 3 --out "$RUNNER_TEMP/probe.json" || true
+
 
       # 한 브랜드가 실패해도 이전 배포본의 그 브랜드 데이터를 유지하기 위해 먼저 받아온다
       - name: Fetch previous data

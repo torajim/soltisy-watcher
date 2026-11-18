@@ -77,9 +77,16 @@ class PradaSource(Source):
         self.locale_path = locale_path
 
     def fetch(self) -> list[Product]:
-        hits = parse_hits(self.http.get_text(self.url))
+        html = self.http.get_text(self.url)
+        hits = parse_hits(html)
         if not hits:
-            raise RuntimeError("상품 데이터(hits)를 찾지 못함 — 페이지 구조가 바뀌었을 수 있음")
+            # 차단 페이지인지 구조 변경인지 로그만 보고 알 수 있게 응답 앞부분을 남긴다
+            title = re.search(r"<title[^>]*>(.*?)</title>", html, re.S | re.I)
+            snippet = " ".join(html[:300].split())
+            raise RuntimeError(
+                "상품 데이터(hits)를 찾지 못함 — 차단되었거나 페이지 구조가 바뀌었을 수 있음 "
+                f"({len(html)}자, title={(title.group(1).strip() if title else '')!r}): {snippet!r}"
+            )
         products = []
         for hit in hits[: self.limit]:
             p = build_product(self.brand_id, self.brand_name, hit, self.locale_path, rank=len(products))

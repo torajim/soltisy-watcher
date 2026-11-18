@@ -24,6 +24,16 @@ def _retryable(error: requests.RequestException) -> bool:
     return resp.status_code >= 500 or resp.status_code == 429
 
 
+def describe(resp: requests.Response, limit: int = 300) -> str:
+    """실패 원인 파악용 응답 요약: 상태·Content-Type·서버·본문 앞부분."""
+    text = " ".join((resp.text or "")[:limit].split())
+    server = resp.headers.get("Server", "")
+    return (
+        f"HTTP {resp.status_code}, {resp.headers.get('Content-Type', '?')}, server={server or '?'}, "
+        f"{len(resp.content)}B, url={resp.url}, body={text!r}"
+    )
+
+
 class Http:
     """재시도와 요청 간 지연을 가진 얇은 requests 래퍼."""
 
@@ -53,7 +63,12 @@ class Http:
         raise last_error  # type: ignore[misc]
 
     def get_json(self, url: str, **kwargs) -> dict:
-        return self.get(url, **kwargs).json()
+        resp = self.get(url, **kwargs)
+        try:
+            return resp.json()
+        except ValueError as e:
+            # 봇 차단·점검 페이지 등 JSON 이 아닌 응답이 오면 원인을 알 수 있게 응답 요약을 남긴다
+            raise RuntimeError(f"JSON 이 아닌 응답: {describe(resp)}") from e
 
     def get_text(self, url: str, **kwargs) -> str:
         resp = self.get(url, **kwargs)

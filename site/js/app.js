@@ -1,5 +1,6 @@
 import { TYPE_FILTERS, discountRate, filterProducts, formatPrice, imageWindow, interleave, restoreIndex, staleNotice, timeAgo } from "./feed.js";
 import { MEASURE_FIELDS, MEASURE_LABELS, formatDiff, hasProfile, parseLabelList, recommend } from "./sizing.js";
+import { clipboardText, itemFromSearch, shareData } from "./share.js";
 import { loadPosition, loadPrefs, loadProfile, savePosition, savePrefs, saveProfile } from "./store.js";
 import * as tryon from "./tryon.js";
 
@@ -23,6 +24,8 @@ const state = {
   prefs: loadPrefs(),
   profile: loadProfile(),
   current: 0,
+  // 공유 링크(?item=<id>)로 들어왔을 때 처음에 보여줄 상품
+  sharedId: null,
 };
 
 const feed = $("#feed");
@@ -44,7 +47,24 @@ async function load() {
   state.all = interleave(state.data.products, brandOrder);
   const feedBrandIds = state.data.brands.filter((b) => !b.link).map((b) => b.id);
   if (state.prefs.brand !== "all" && !feedBrandIds.includes(state.prefs.brand)) state.prefs.brand = "all";
+  const missingShared = takeSharedItem();
   render();
+  if (missingShared) toast("공유받은 상품이 지금 피드에는 없어요. 함께 받은 공식 상품 링크로 확인해 주세요.", null, 5000);
+}
+
+// 공유 링크로 들어오면 전체 피드에서 그 상품부터 보여준다. 상품이 피드에서 빠졌으면 true.
+function takeSharedItem() {
+  const id = itemFromSearch(location.search);
+  if (!id) return false;
+  // 새로고침하거나 홈 화면 앱으로 다시 열 때 또 그 상품으로 튀지 않도록 주소에서 지운다
+  try {
+    history.replaceState(null, "", location.pathname);
+  } catch {}
+  if (!state.all.some((p) => p.id === id)) return true;
+  state.prefs.brand = "all";
+  state.prefs.type = "all";
+  state.sharedId = id;
+  return false;
 }
 
 function showState(msg) {
@@ -122,10 +142,13 @@ function render() {
   feed.replaceChildren(...cards);
 
   // 필터(브랜드·종류)마다 마지막으로 보던 상품에서 이어서 보여준다
-  const saved = loadPosition(positionKey());
-  const start = restoreIndex(state.list, saved);
+  const shared = state.sharedId ? state.list.findIndex((p) => p.id === state.sharedId) : -1;
+  state.sharedId = null;
+  const start = shared >= 0 ? shared : restoreIndex(state.list, loadPosition(positionKey()));
   state.current = start;
-  if (start > 0) {
+  if (shared >= 0) {
+    feed.scrollTop = cards[start].offsetTop;
+  } else if (start > 0) {
     feed.scrollTop = cards[start].offsetTop;
     toast(`${start + 1}번째부터 이어서 봐요`, { label: "처음부터", onClick: () => goTo(0) }, 4000);
   } else {
@@ -165,6 +188,7 @@ function buildCard(tpl, p, index) {
   go.href = p.url;
 
   $(".size-btn", card).addEventListener("click", () => openSizeSheet(p));
+  $(".share-btn", card).addEventListener("click", () => shareProduct(p));
   if (!p.sizes.length) $(".size-btn", card).hidden = true;
   // 가상 피팅이 준비되기 전에는 누를 수 없는 버튼을 보여주지 않는다
   $(".tryon-btn", card).hidden = !tryon.isAvailable();
@@ -282,6 +306,28 @@ function goTo(i) {
   const cards = feed.querySelectorAll(".card");
   const target = cards[Math.max(0, Math.min(cards.length - 1, i))];
   target?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ---------- 공유 ----------
+// 휴대폰에서는 기본 공유 창(카카오톡·메시지·인스타 DM 등)을 띄우고, 안 되면 링크를 복사한다.
+
+async function shareProduct(p) {
+  const data = shareData(p, location.href);
+  if (navigator.share && (!navigator.canShare || navigator.canShare(data))) {
+    try {
+      await navigator.share(data);
+      return;
+    } catch (e) {
+      if (e?.name === "AbortError") return; // 사용자가 공유 창을 닫음
+      console.warn(e);
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(clipboardText(p, location.href));
+    toast("링크를 복사했어요. 원하는 곳에 붙여 넣어 보내세요.");
+  } catch {
+    toast("이 브라우저에서는 공유할 수 없어요.");
+  }
 }
 
 // ---------- 사이즈 시트 ----------

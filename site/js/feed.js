@@ -8,6 +8,19 @@ export const TYPE_FILTERS = [
   { id: "etc", label: "잡화" },
 ];
 
+export const GENDER_FILTERS = [
+  { id: "men", label: "남성" },
+  { id: "women", label: "여성" },
+  { id: "all", label: "전체" },
+];
+
+/** 설정한 성별에 맞는 상품인지. 성별이 없는 예전 데이터는 남성, 남녀 공용은 양쪽 모두에 나온다. */
+export function matchesGender(p, gender) {
+  if (!gender || gender === "all") return true;
+  const g = p.gender || "men";
+  return g === gender || g === "unisex";
+}
+
 /** 브랜드별 신상품 순서를 유지하면서 브랜드를 번갈아 섞는다 (한 브랜드만 계속 나오지 않도록). */
 export function interleave(products, brandOrder) {
   const groups = new Map(brandOrder.map((id) => [id, []]));

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b0b0c" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="description" content="솔리드옴므 · 타임옴므 · 시스템옴므 · 스컬프스토어 · 비이커 · 프라다 신상품을 한 번에" />
+  <meta name="description" content="솔리드옴므 · 타임옴므 · 시스템옴므 · 타임 · 시스템 · 스컬프스토어 · 비이커 · 프라다 남녀 신상품을 한 번에" />
   <title>Soltisy Watcher</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
@@ -17,7 +17,7 @@
   <header class="topbar">
     <div class="row">
       <nav class="chips" id="brandChips" aria-label="브랜드"></nav>
-      <button class="icon-btn" id="openSettings" aria-label="내 사이즈 설정">
+      <button class="icon-btn" id="openSettings" aria-label="설정">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4.4 0-8 2.2-8 5v2h16v-2c0-2.8-3.6-5-8-5Z"/></svg>
       </button>
     </div>
@@ -41,13 +41,18 @@
     <div class="sheet-body" id="sizeSheetBody"></div>
   </dialog>
 
-  <!-- 내 사이즈 설정 -->
+  <!-- 설정 (보기 · 내 사이즈) -->
   <dialog class="sheet" id="settingsSheet">
     <form method="dialog" class="sheet-head">
-      <h2>내 사이즈</h2>
+      <h2>설정</h2>
       <button class="icon-btn" aria-label="닫기">✕</button>
     </form>
     <form class="sheet-body settings" id="settingsForm">
+      <section>
+        <h3>보여줄 상품</h3>
+        <p class="hint">고르면 바로 적용돼요. 남녀 공용 상품은 양쪽에 모두 나와요.</p>
+        <div class="chips segmented" id="genderPicker" role="group" aria-label="성별"></div>
+      </section>
       <section>
         <h3>평소 입는 사이즈</h3>
         <p class="hint">브랜드마다 표기가 달라서 여러 개를 쉼표로 적어두면 앞에서부터 맞는 걸 찾아요.<br />예) 상의 <code>100, 48, L</code> · 하의 <code>32, 82</code></p>

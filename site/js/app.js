@@ -1,4 +1,4 @@
-import { TYPE_FILTERS, discountRate, filterProducts, formatPrice, imageWindow, interleave, restoreIndex, staleNotice, tabBrands, timeAgo } from "./feed.js";
+import { GENDER_FILTERS, TYPE_FILTERS, discountRate, filterProducts, formatPrice, imageWindow, interleave, matchesGender, restoreIndex, staleNotice, tabBrands, timeAgo } from "./feed.js";
 import { MEASURE_FIELDS, MEASURE_LABELS, formatDiff, hasProfile, parseLabelList, recommend } from "./sizing.js";
 import { clipboardText, itemFromSearch, shareData } from "./share.js";
 import { loadPosition, loadPrefs, loadProfile, savePosition, savePrefs, saveProfile } from "./store.js";
@@ -43,16 +43,31 @@ async function load() {
     console.error(e);
     return;
   }
-  const brandOrder = state.data.brands.map((b) => b.id);
-  state.all = interleave(state.data.products, brandOrder);
-  const feedBrandIds = tabBrands(state.data.brands, state.all).map((b) => b.id);
-  if (state.prefs.brand !== "all" && !feedBrandIds.includes(state.prefs.brand)) state.prefs.brand = "all";
   const missingShared = takeSharedItem();
+  buildAll();
   render();
   if (missingShared) toast("공유받은 상품이 지금 피드에는 없어요. 함께 받은 공식 상품 링크로 확인해 주세요.", null, 5000);
 }
 
-// 공유 링크로 들어오면 전체 피드에서 그 상품부터 보여준다. 상품이 피드에서 빠졌으면 true.
+// 설정한 성별의 상품만 모아 피드를 만든다. 고른 브랜드에 그 성별 상품이 없으면 ALL 로 돌린다.
+function buildAll() {
+  const brandOrder = state.data.brands.map((b) => b.id);
+  // 공유받은 상품은 성별 설정과 달라도 보여준다
+  const shown = state.data.products.filter((p) => matchesGender(p, state.prefs.gender) || p.id === state.sharedId);
+  state.all = interleave(shown, brandOrder);
+  const feedBrandIds = tabBrands(state.data.brands, state.all).map((b) => b.id);
+  if (state.prefs.brand !== "all" && !feedBrandIds.includes(state.prefs.brand)) state.prefs.brand = "all";
+}
+
+function setGender(gender) {
+  if (state.prefs.gender === gender) return;
+  state.prefs.gender = gender;
+  savePrefs(state.prefs);
+  buildAll();
+  render();
+}
+
+// 공유 링크로 들어오면 전체 피드에서 그 상품부터 보여준다. 상품이 데이터에서 빠졌으면 true.
 function takeSharedItem() {
   const id = itemFromSearch(location.search);
   if (!id) return false;
@@ -60,7 +75,7 @@ function takeSharedItem() {
   try {
     history.replaceState(null, "", location.pathname);
   } catch {}
-  if (!state.all.some((p) => p.id === id)) return true;
+  if (!state.data.products.some((p) => p.id === id)) return true;
   state.prefs.brand = "all";
   state.prefs.type = "all";
   state.sharedId = id;
@@ -158,7 +173,7 @@ function render() {
 }
 
 function positionKey() {
-  return `${state.prefs.brand}|${state.prefs.type}`;
+  return `${state.prefs.gender}|${state.prefs.brand}|${state.prefs.type}`;
 }
 
 function buildCard(tpl, p, index) {
@@ -402,7 +417,20 @@ function buildMeasureInputs() {
   }
 }
 
+function buildGenderPicker() {
+  $("#genderPicker").replaceChildren(
+    ...GENDER_FILTERS.map((g) =>
+      el("button", { class: "chip", type: "button", "data-gender": g.id, onclick: () => { setGender(g.id); syncGenderPicker(); } }, g.label),
+    ),
+  );
+}
+
+function syncGenderPicker() {
+  for (const b of $("#genderPicker").children) b.setAttribute("aria-pressed", String(b.dataset.gender === state.prefs.gender));
+}
+
 function openSettings() {
+  syncGenderPicker();
   const form = $("#settingsForm");
   const p = state.profile;
   for (const t of ["top", "bottom", "shoes"]) form.elements[`label-${t}`].value = (p.labels[t] || []).join(", ");
@@ -427,6 +455,7 @@ function readSettingsForm() {
 
 function setupSettings() {
   buildMeasureInputs();
+  buildGenderPicker();
   $("#openSettings").addEventListener("click", openSettings);
   $("#settingsForm").addEventListener("submit", (e) => {
     e.preventDefault();

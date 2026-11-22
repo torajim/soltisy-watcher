@@ -1,4 +1,4 @@
-import { TYPE_FILTERS, discountRate, filterProducts, formatPrice, imageWindow, interleave, restoreIndex, staleNotice, timeAgo } from "./feed.js";
+import { TYPE_FILTERS, discountRate, filterProducts, formatPrice, imageWindow, interleave, restoreIndex, staleNotice, tabBrands, timeAgo } from "./feed.js";
 import { MEASURE_FIELDS, MEASURE_LABELS, formatDiff, hasProfile, parseLabelList, recommend } from "./sizing.js";
 import { clipboardText, itemFromSearch, shareData } from "./share.js";
 import { loadPosition, loadPrefs, loadProfile, savePosition, savePrefs, saveProfile } from "./store.js";
@@ -45,7 +45,7 @@ async function load() {
   }
   const brandOrder = state.data.brands.map((b) => b.id);
   state.all = interleave(state.data.products, brandOrder);
-  const feedBrandIds = state.data.brands.filter((b) => !b.link).map((b) => b.id);
+  const feedBrandIds = tabBrands(state.data.brands, state.all).map((b) => b.id);
   if (state.prefs.brand !== "all" && !feedBrandIds.includes(state.prefs.brand)) state.prefs.brand = "all";
   const missingShared = takeSharedItem();
   render();
@@ -78,8 +78,8 @@ function renderChips() {
   const brands = $("#brandChips");
   const counts = {};
   for (const p of state.all) counts[p.brand] = (counts[p.brand] || 0) + 1;
-  const feedBrands = state.data.brands.filter((b) => !b.link);
-  const linkBrands = state.data.brands.filter((b) => b.link);
+  // 상품을 직접 가져오지 못하는 브랜드(바로가기 전용·수집된 상품 없음)는 탭에서 뺀다
+  const feedBrands = tabBrands(state.data.brands, state.all);
   const items = [
     { id: "all", name: "ALL", count: state.all.length },
     ...feedBrands.map((b) => ({ id: b.id, name: b.name, count: counts[b.id] || 0, notice: staleNotice(b) })),
@@ -99,8 +99,6 @@ function renderChips() {
         el("span", { class: "n", text: b.notice ? `${b.count} !` : b.count }),
       ),
     ),
-    // 자동 수집이 안 되는 브랜드는 공식 페이지 바로가기로만 둔다
-    ...linkBrands.map((b) => el("a", { class: "chip link", href: b.link, target: "_blank", rel: "noopener" }, b.name, el("span", { class: "n", text: "↗" }))),
   );
 
   // 수집에 실패한 브랜드를 고르면 오래된 데이터라는 걸 알려준다

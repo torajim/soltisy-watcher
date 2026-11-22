@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { discountRate, filterProducts, formatPrice, imageWindow, interleave, restoreIndex, staleNotice, timeAgo } from "../js/feed.js";
+import { discountRate, filterProducts, formatPrice, imageWindow, interleave, restoreIndex, staleNotice, tabBrands, timeAgo } from "../js/feed.js";
 
 const P = (brand, rank, type = "top") => ({ id: `${brand}:${rank}`, brand, rank, type, price: 100, originalPrice: 100 });
 
@@ -56,4 +56,10 @@ test("staleNotice: 수집 실패 브랜드만 마지막 성공 시각과 함께 
   assert.equal(staleNotice({ name: "B", ok: false, updatedAt: "2026-10-13T12:00:00Z" }, now), "B 수집 실패 · 2일 전 데이터예요");
   assert.equal(staleNotice({ name: "C", ok: false }, now), "C 수집 실패 · 표시할 데이터가 없어요");
   assert.equal(staleNotice(undefined, now), null);
+});
+
+test("상단 탭: 바로가기 전용·상품 없는 브랜드는 숨김", () => {
+  const brands = [{ id: "a" }, { id: "b" }, { id: "polo", link: "https://example.com" }, { id: "c", ok: false }];
+  const ids = tabBrands(brands, [P("a", 0), P("c", 0)]).map((b) => b.id);
+  assert.deepEqual(ids, ["a", "c"]);
 });

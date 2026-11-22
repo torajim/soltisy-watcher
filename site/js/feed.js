@@ -24,6 +24,12 @@ export function interleave(products, brandOrder) {
   return out;
 }
 
+/** 상단 탭에 보일 브랜드: 바로가기 전용 브랜드와 지금 상품이 하나도 없는 브랜드는 뺀다. */
+export function tabBrands(brands, products) {
+  const has = new Set(products.map((p) => p.brand));
+  return brands.filter((b) => !b.link && has.has(b.id));
+}
+
 export function filterProducts(products, { brand = "all", type = "all" } = {}) {
   return products.filter((p) => (brand === "all" || p.brand === brand) && (type === "all" || p.type === type));
 }

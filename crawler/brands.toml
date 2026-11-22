@@ -6,8 +6,8 @@
 #                          (목록 URL 의 /product/list.html?cate_no=XX)
 # source = "ssf"         : SSF SHOP 브랜드관. 브랜드관 목록 URL 의 경로·dspCtgryNo·brandShopNo·brndShopId
 # source = "prada"       : prada.com 카테고리 페이지 (category_path)
-# source = "link"        : 수집하지 않음. 앱 상단에 url 로 가는 바로가기 칩만 표시
-#                          (자동 수집을 막아 둔 사이트용)
+# source = "link"        : 수집하지 않음. 상품이 없으므로 앱 상단 탭에도 나오지 않는다
+#                          (자동 수집을 막아 둔 사이트를 기록해 두는 용도)
 
 [[brand]]
 id = "solidhomme"

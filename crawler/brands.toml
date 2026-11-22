@@ -6,6 +6,12 @@
 #                          (목록 URL 의 /product/list.html?cate_no=XX)
 # source = "ssf"         : SSF SHOP 브랜드관. 브랜드관 목록 URL 의 경로·dspCtgryNo·brandShopNo·brndShopId
 # source = "prada"       : prada.com 카테고리 페이지 (category_path)
+#
+# 성별: 상품마다 men / women 을 붙여 앱 설정(남성·여성·전체)으로 걸러 본다.
+#   gender = "women"         : 브랜드 전체가 한 성별일 때 (생략하면 "men")
+#   [brand.men] / [brand.women] : 남녀 목록이 따로 있는 사이트. 각 표의 값으로 공통 설정을 덮어써
+#                              성별마다 따로 수집한다 (limit 도 성별마다 적용)
+#   더한섬은 상품의 첫 전시 카테고리('남성'/'여성')를 우선한다.
 # source = "link"        : 수집하지 않음. 상품이 없으므로 앱 상단 탭에도 나오지 않는다
 #                          (자동 수집을 막아 둔 사이트를 기록해 두는 용도)
 
@@ -31,6 +37,23 @@ source = "thehandsome"
 brand_no = "BR07"
 limit = 60
 
+# 타임옴므·시스템옴므의 여성 브랜드 (더한섬)
+[[brand]]
+id = "time"
+name = "TIME"
+source = "thehandsome"
+brand_no = "BR01"
+gender = "women"
+limit = 60
+
+[[brand]]
+id = "system"
+name = "SYSTEM"
+source = "thehandsome"
+brand_no = "BR03"
+gender = "women"
+limit = 60
+
 # 편집숍: 신상품 카테고리가 없어 '전체보기'(255)를 신상품순(sort_method=5)으로 정렬해 가져온다
 [[brand]]
 id = "sculpstore"
@@ -41,24 +64,35 @@ new_category_no = 255
 sort_method = 5
 limit = 60
 
-# 비이커 남성 신상품 (SSF SHOP)
+# 비이커 남성·여성 신상품 (SSF SHOP)
 [[brand]]
 id = "beaker"
 name = "BEAKER"
 source = "ssf"
-shop_path = "BEAKER/MEN"
-category_no = "SFMA31A42"
 brand_shop_no = "BDMA09"
 brand_shop_id = "MCBR"
 limit = 60
 
-# 프라다 남성 신상품 (의류·신발·가방·액세서리 전체)
+[brand.men]
+shop_path = "BEAKER/MEN"
+category_no = "SFMA31A42"
+
+[brand.women]
+shop_path = "BEAKER/WOMEN"
+category_no = "SFMA31A41"
+
+# 프라다 남성·여성 신상품 (의류·신발·가방·액세서리 전체)
 [[brand]]
 id = "prada"
 name = "PRADA"
 source = "prada"
-category_path = "/mens/new-in/c/10182KR.html"
 limit = 40  # 사이트가 ?page= 를 무시해 첫 페이지(현재 40개)만 받을 수 있다
+
+[brand.men]
+category_path = "/mens/new-in/c/10182KR.html"
+
+[brand.women]
+category_path = "/womens/new-in/c/10111KR.html"
 
 # 랄프로렌 공식몰은 봇 차단(Akamai)으로 자동 수집이 불가해 바로가기만 둔다.
 [[brand]]

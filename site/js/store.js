@@ -37,7 +37,8 @@ export function loadProfile() {
 }
 
 export const saveProfile = (p) => write(PROFILE_KEY, p);
-export const loadPrefs = () => ({ brand: "all", type: "all", ...(read(PREFS_KEY) || {}) });
+// gender: 보여줄 성별 (men / women / all). 처음에는 지금까지처럼 남성만.
+export const loadPrefs = () => ({ brand: "all", type: "all", gender: "men", ...(read(PREFS_KEY) || {}) });
 export const savePrefs = (p) => write(PREFS_KEY, p);
 
 // 필터 조합별 마지막으로 본 상품: { "all|all": { id, index }, ... }

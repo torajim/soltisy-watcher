@@ -20,7 +20,7 @@ SITE = "https://www.thehandsome.com"
 API = f"{SITE}/api"
 IMG = "https://cdn-img.thehandsome.com/studio/goods"
 PAGE_SIZE = 20  # API 가 고정으로 20개씩 준다
-WOMEN_CATEGORY = "여성"
+GENDER_CATEGORIES = {"여성": "women", "남성": "men"}
 
 
 def image_url(path: str) -> str:
@@ -162,10 +162,11 @@ class TheHandsomeSource(Source):
             if detail is None:
                 continue  # 상세가 없으면 여성 라인 여부도, 사이즈도 알 수 없으므로 건너뛴다
             categories = [c.get("dispCtgNm") for c in detail.get("dispCtgList") or []]
-            if categories and categories[0] == WOMEN_CATEGORY:
-                continue  # 옴므 브랜드에 섞여 있는 여성 라인은 제외
             actual = self._payload(f"{API}/goods/1/ko/goods/{goods_no}/actualSizes")
             p = build_product(self.brand_id, self.brand_name, goods, detail, actual, rank=len(products))
             if p and p.images:
+                # 첫 전시 카테고리가 '여성'/'남성'이면 그대로 따른다 (옴므 브랜드에 섞인 여성 라인 등).
+                # '잡화' 처럼 성별이 없는 카테고리면 비워 두어 brands.toml 의 성별을 쓴다.
+                p.gender = GENDER_CATEGORIES.get(categories[0] if categories else "", "")
                 products.append(p)
         return products

@@ -50,6 +50,8 @@ button, input { font: inherit; color: inherit; }
 .chip .n { opacity: .6; margin-left: 4px; font-weight: 500; }
 .chip.stale { border-color: var(--warn); }
 .chip.stale .n { color: var(--warn); opacity: 1; }
+.chips.segmented { margin: 10px 0 8px; overflow: visible; }
+.chips.segmented .chip { flex: 1; text-align: center; }
 .notice {
   display: inline-block; margin-top: 6px; padding: 5px 10px; border-radius: 8px;
   font-size: 12px; color: var(--warn); background: rgba(0, 0, 0, .55);

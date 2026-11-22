@@ -63,6 +63,11 @@ def test_normalize_all_first_wins():
         (("첼시 부츠",), "shoes"),
         (("수트팬츠", "팬츠", "남성"), "bottom"),
         (("케이블 울 글러브",), "etc"),
+        # 여성 품목
+        (("스트레치 테크니컬 패브릭 드레스",), "top"),
+        (("램스 울 캐시미어 펜슬 스커트",), "bottom"),
+        (("프린트 카프 헤어 슬링백 펌프스",), "shoes"),
+        (("프린티드 카프 헤어 버킷 햇",), "etc"),
     ],
 )
 def test_classify(texts, expected):

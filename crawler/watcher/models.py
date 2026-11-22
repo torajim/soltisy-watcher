@@ -34,6 +34,8 @@ class Product:
     size_note: str = ""
     rank: int = 0
     """브랜드 신상품 목록에서의 순서 (0 이 가장 최신)."""
+    gender: str = ""
+    """'men' / 'women' / 'unisex'. 비워 두면 수집 설정(brands.toml)의 성별로 채운다."""
 
     def to_json(self) -> dict:
         d = asdict(self)
@@ -60,4 +62,5 @@ class Product:
             ],
             "sizeNote": d["size_note"],
             "rank": d["rank"],
+            "gender": d["gender"] or "men",
         }

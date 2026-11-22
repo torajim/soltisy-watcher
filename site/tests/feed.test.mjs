@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { discountRate, filterProducts, formatPrice, imageWindow, interleave, restoreIndex, staleNotice, tabBrands, timeAgo } from "../js/feed.js";
+import { discountRate, filterProducts, formatPrice, imageWindow, interleave, matchesGender, restoreIndex, staleNotice, tabBrands, timeAgo } from "../js/feed.js";
 
 const P = (brand, rank, type = "top") => ({ id: `${brand}:${rank}`, brand, rank, type, price: 100, originalPrice: 100 });
 
@@ -62,4 +62,11 @@ test("상단 탭: 바로가기 전용·상품 없는 브랜드는 숨김", () =>
   const brands = [{ id: "a" }, { id: "b" }, { id: "polo", link: "https://example.com" }, { id: "c", ok: false }];
   const ids = tabBrands(brands, [P("a", 0), P("c", 0)]).map((b) => b.id);
   assert.deepEqual(ids, ["a", "c"]);
+});
+
+test("성별 설정: 공용은 양쪽, 성별 없는 예전 데이터는 남성", () => {
+  const men = { gender: "men" }, women = { gender: "women" }, unisex = { gender: "unisex" }, old = {};
+  assert.deepEqual([men, women, unisex, old].map((p) => matchesGender(p, "men")), [true, false, true, true]);
+  assert.deepEqual([men, women, unisex, old].map((p) => matchesGender(p, "women")), [false, true, true, false]);
+  assert.deepEqual([men, women, unisex, old].map((p) => matchesGender(p, "all")), [true, true, true, true]);
 });

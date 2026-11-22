@@ -71,7 +71,7 @@ class FakeHttp:
         return self._match(url, params)
 
 
-def test_handsome_fetch_skips_women_and_pages():
+def test_handsome_fetch_tags_women_line():
     lst = load_json("handsome_list.json")
     detail = load_json("handsome_detail.json")
     women = json.loads(json.dumps(detail))
@@ -93,7 +93,8 @@ def test_handsome_fetch_skips_women_and_pages():
     src = thehandsome.TheHandsomeSource("timehomme", "TIME HOMME", http, brand_no="BR06", limit=10)
     products = src.fetch()
 
-    assert [p.id for p in products] == ["timehomme:TH2G8WJM900M"]
+    # 옴므 브랜드에 섞인 여성 라인은 빼지 않고 여성으로 표시한다
+    assert [(p.id, p.gender) for p in products] == [("timehomme:TH2G8WJM900M", "men"), (f"timehomme:{second}", "women")]
 
 
 def test_handsome_fetch_skips_goods_when_detail_fails():
@@ -304,3 +305,89 @@ def test_link_brand_is_not_crawled(tmp_path, monkeypatch):
     assert ok == 0
     assert data["brands"] == [{"id": "polo", "name": "POLO", "ok": True, "count": 0, "link": "https://example.com/men"}]
     assert data["products"] == []
+
+
+# ---------- 남성 / 여성 ----------
+
+
+def _product(pid, gender=""):
+    from watcher.models import Product
+
+    brand = pid.split(":")[0]
+    return Product(id=pid, brand=brand, brand_name=brand.upper(), name="n", url="u", images=["i"], price=1, original_price=1, type="top", gender=gender)
+
+
+def test_gender_feeds():
+    from watcher.__main__ import gender_feeds
+
+    plain = {"id": "a", "name": "A", "source": "x", "limit": 5}
+    assert gender_feeds(plain) == [("men", plain)]
+    assert gender_feeds({**plain, "gender": "women"}) == [("women", plain)]
+    split = {**plain, "men": {"path": "/m"}, "women": {"path": "/w", "limit": 9}}
+    assert gender_feeds(split) == [("men", {**plain, "path": "/m"}), ("women", {**plain, "path": "/w", "limit": 9})]
+
+
+def test_run_split_brand_tags_gender_and_merges_unisex(tmp_path, monkeypatch):
+    from watcher import __main__ as main_mod
+
+    class Feed:
+        def __init__(self, conf):
+            self.conf = conf
+
+        def fetch(self):
+            if self.conf["path"] == "/m":
+                return [_product("a:1"), _product("a:both")]
+            return [_product("a:2"), _product("a:both"), _product("a:3", gender="men")]
+
+    monkeypatch.setattr(main_mod, "create_source", lambda conf, http: Feed(conf))
+    out = tmp_path / "products.json"
+    run([{"id": "a", "name": "A", "source": "x", "men": {"path": "/m"}, "women": {"path": "/w"}}], out, http=object())
+
+    data = json.loads(out.read_text("utf-8"))
+    genders = {p["id"]: p["gender"] for p in data["products"]}
+    # 소스가 정한 성별(a:3)은 피드 성별보다 우선한다
+    assert genders == {"a:1": "men", "a:both": "unisex", "a:2": "women", "a:3": "men"}
+    assert data["brands"][0]["ok"] is True and data["brands"][0]["count"] == 4
+
+
+def test_run_keeps_previous_data_only_for_failed_gender(tmp_path, monkeypatch):
+    from watcher import __main__ as main_mod
+
+    out = tmp_path / "products.json"
+    out.write_text(
+        json.dumps(
+            {
+                "generatedAt": "2026-10-01T00:00:00+00:00",
+                "brands": [{"id": "a", "name": "A", "ok": True, "count": 2, "updatedAt": "2026-10-01T00:00:00+00:00"}],
+                "products": [{"id": "a:old-m", "brand": "a", "gender": "men"}, {"id": "a:old-w", "brand": "a", "gender": "women"}],
+            }
+        ),
+        "utf-8",
+    )
+
+    class Feed:
+        def __init__(self, conf):
+            self.conf = conf
+
+        def fetch(self):
+            if self.conf["path"] == "/w":
+                raise RuntimeError("boom")
+            return [_product("a:new")]
+
+    monkeypatch.setattr(main_mod, "create_source", lambda conf, http: Feed(conf))
+    ok = run([{"id": "a", "name": "A", "source": "x", "men": {"path": "/m"}, "women": {"path": "/w"}}], out, http=object())
+
+    data = json.loads(out.read_text("utf-8"))
+    assert ok == 0
+    assert [p["id"] for p in data["products"]] == ["a:new", "a:old-w"]
+    assert data["brands"][0] == {"id": "a", "name": "A", "ok": False, "count": 2, "updatedAt": "2026-10-01T00:00:00+00:00"}
+
+
+def test_brands_config_genders():
+    from watcher.__main__ import ROOT, gender_feeds, load_brands
+
+    for b in load_brands(ROOT / "brands.toml"):
+        if b["source"] == "link":
+            continue
+        for gender, _ in gender_feeds(b):
+            assert gender in ("men", "women"), b["id"]

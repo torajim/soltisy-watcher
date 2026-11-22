@@ -29,7 +29,12 @@ site/               정적 모바일 웹 앱 (빌드 없음, 바닐라 JS)
 | SCULP STORE | sculpstore.com (Cafe24 편집숍) | '전체보기'를 신상품순으로 상위 60개. 카드에 실제 브랜드 표시 |
 | BEAKER | SSF SHOP 비이커 남성 (SFMA31A42) · 여성 (SFMA31A41) | 남녀 각각 목록 첫 페이지 60개. 카드에 실제 브랜드 표시 |
 | PRADA | prada.com 남성 (10182KR) · 여성 (10111KR) 신상품 | 남녀 각각 첫 페이지 40개. 사이즈 정보 없음 |
-| POLO · RRL · GUCCI | 수집 안 함 | 자동 수집 불가/미확인이라 앱 탭에 표시하지 않음 (`brands.toml` 에 `source = "link"` 로만 남겨 둠) |
+| TOM GREYHOUND | 더한섬닷컴 (TGTN) | 신상품순 상위 60개, 품절 제외. 상품의 전시 카테고리로 남녀 분류 |
+| COOR | coor.kr (Cafe24) 남성 (cate_no=94) · 여성 (93) NEW ARRIVALS | 남녀 각각 60개. 상품 정보 표의 텍스트 실측 사용 |
+| PEER | 더현대Hi 피어 브랜드관 (M00021) | 남녀 각각 최신상품순 60개, 품절·아동 제외. 카드에 실제 브랜드 표시. 실측 없음 |
+| ZARA | zara.com/kr 남성 (2544454) · 여성 (2546081) THE NEW | 남녀 각각 60개. 실측 없음 |
+| UNIQLO | uniqlo.com/kr 남성 (57893) · 여성 (57892) 신상품순 | 남녀 각각 60개, 판매 예정 제외. 실측 없음 |
+| POLO · RRL · GUCCI · COS · MASSIMO DUTTI | 수집 안 함 | 자동 수집 불가/미확인이라 앱 탭에 표시하지 않음 (`brands.toml` 에 `source = "link"` 로만 남겨 둠) |
 
 사이즈 프로필은 **브라우저(localStorage)에만** 저장되고 서버로 보내지 않습니다.
 

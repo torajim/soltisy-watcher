@@ -50,6 +50,9 @@ def parse_list(html: str, base_url: str, cate_no: int) -> list[dict]:
             or box.select_one('a[href^="/product/"]')
         )
         name_el = box.select_one(".name") or box.select_one(".nm")
+        if name_el:
+            for label in name_el.select(".title"):  # 숨겨진 '상품명 :' 라벨 (코어 등)
+                label.decompose()
         no = _product_no(box, link)
         if not link or not name_el or not no or no in seen:
             continue
@@ -131,6 +134,35 @@ def parse_size_table(html: str) -> dict[str, dict[str, float]]:
     return out
 
 
+_SIZE_LINE = re.compile(r"^\s*([A-Z0-9]{1,4}|FREE|F)\s+((?:[가-힣A-Za-z ]+\s*[\d.]+\s*)+)$", re.I)
+_PAIR = re.compile(r"([가-힣A-Za-z][가-힣A-Za-z ]*?)\s*([\d.]+)")
+
+
+ONE_SIZE = "*"
+
+
+def parse_size_lines(html: str) -> dict[str, dict[str, float]]:
+    """상품 정보 표의 텍스트 실측 → {사이즈: {공통 키: 값}}.
+
+    예 (코어 'Detail' 칸): "SIZE 'CM'<br>S 총장 107.5 가슴 56.5 어깨 49 소매 62.4<br>M ..."
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    out: dict[str, dict[str, float]] = {}
+    for cell in soup.select("td"):
+        text = cell.get_text("\n", strip=True)
+        if not re.search(r"SIZE\s*\W?CM", text, re.I):
+            continue
+        for line in text.splitlines():
+            m = _SIZE_LINE.match(line)
+            label, rest = (m.group(1).upper(), m.group(2)) if m else (ONE_SIZE, line)  # 원사이즈는 라벨 없이 수치만 적는다
+            measured = normalize_all((name.strip(), float(v)) for name, v in _PAIR.findall(rest))
+            if measured:
+                out.setdefault(label, measured)
+        if out:
+            break
+    return out
+
+
 def parse_images(html: str) -> list[str]:
     """상세 이미지(추가 이미지 슬라이드) — 작은 썸네일 경로를 큰 이미지 경로로 바꾼다."""
     soup = BeautifulSoup(html, "html.parser")
@@ -160,11 +192,14 @@ def parse_description(html: str) -> str:
 
 def build_product(brand_id: str, brand_name: str, item: dict, detail_html: str | None, rank: int) -> Product:
     options = parse_options(detail_html) if detail_html else []
-    table = parse_size_table(detail_html) if detail_html else {}
+    table = (parse_size_table(detail_html) or parse_size_lines(detail_html)) if detail_html else {}
     images = parse_images(detail_html) if detail_html else []
     if not images and item.get("thumb"):
         images = [item["thumb"]]
 
+    if ONE_SIZE in table and len(options) == 1:
+        table = {options[0][0]: table[ONE_SIZE]}
+    table.pop(ONE_SIZE, None)
     sizes = [SizeOption(label=label, in_stock=ok and not item.get("soldout"), measurements=table.get(label, {})) for label, ok in options]
     mkeys = {k for m in table.values() for k in m}
     # 편집숍은 상품마다 실제 브랜드를 앞에 붙여 보여준다 (예: "KAPITAL · SCULP STORE")

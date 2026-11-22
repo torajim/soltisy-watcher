@@ -5,12 +5,18 @@ from .cafe24 import Cafe24Source
 from .prada import PradaSource
 from .ssf import SsfSource
 from .thehandsome import TheHandsomeSource
+from .thehyundai import TheHyundaiSource
+from .uniqlo import UniqloSource
+from .zara import ZaraSource
 
 SOURCE_TYPES: dict[str, type[Source]] = {
     "cafe24": Cafe24Source,
     "thehandsome": TheHandsomeSource,
     "ssf": SsfSource,
     "prada": PradaSource,
+    "zara": ZaraSource,
+    "uniqlo": UniqloSource,
+    "thehyundai": TheHyundaiSource,
 }
 
 

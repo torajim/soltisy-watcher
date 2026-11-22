@@ -1,0 +1,1 @@
+{"result": "SUCCESS", "messageCode": "I-CO-FOM-0002", "message": "조회 성공하였습니다.", "data": [{"uitmCd": "00001", "uitmTotNm": "네이비/M", "sellPossQty": 3}, {"uitmCd": "00002", "uitmTotNm": "네이비/L", "sellPossQty": 1}, {"uitmCd": "00003", "uitmTotNm": "네이비/XL", "sellPossQty": 3}]}

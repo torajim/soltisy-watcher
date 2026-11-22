@@ -6,6 +6,9 @@
 #                          (목록 URL 의 /product/list.html?cate_no=XX)
 # source = "ssf"         : SSF SHOP 브랜드관. 브랜드관 목록 URL 의 경로·dspCtgryNo·brandShopNo·brndShopId
 # source = "prada"       : prada.com 카테고리 페이지 (category_path)
+# source = "zara"        : zara.com/kr 카테고리 번호 (category_id, /kr/ko/categories?ajax=true 에서 확인)
+# source = "uniqlo"      : uniqlo.com/kr 성별 경로 id (gender_path, MEN 57893 / WOMEN 57892)
+# source = "thehyundai"  : 더현대Hi 브랜드관. brand_code(검색 targetCode)·sect_id(브랜드관 번호)·sex(men/women)
 #
 # 성별: 상품마다 men / women 을 붙여 앱 설정(남성·여성·전체)으로 걸러 본다.
 #   gender = "women"         : 브랜드 전체가 한 성별일 때 (생략하면 "men")
@@ -93,6 +96,78 @@ category_path = "/mens/new-in/c/10182KR.html"
 
 [brand.women]
 category_path = "/womens/new-in/c/10111KR.html"
+
+# 톰그레이하운드 (더한섬 편집숍). 남녀 상품이 한 목록에 섞여 있어 상품의 전시 카테고리로 성별을 나눈다.
+[[brand]]
+id = "tomgreyhound"
+name = "TOM GREYHOUND"
+source = "thehandsome"
+brand_no = "TGTN"
+limit = 60
+
+# 코어 (Cafe24 자체몰). 상품 정보 표의 'Detail' 칸 텍스트에서 실측을 읽는다.
+[[brand]]
+id = "coor"
+name = "COOR"
+source = "cafe24"
+base_url = "https://www.coor.kr"
+limit = 60
+
+[brand.men]
+new_category_no = 94
+
+[brand.women]
+new_category_no = 93
+
+# 피어 (현대백화점 스트리트 편집숍) — 더현대Hi 브랜드관
+[[brand]]
+id = "peer"
+name = "PEER"
+source = "thehyundai"
+brand_code = "M00021"
+sect_id = 547338
+limit = 60
+
+[brand.men]
+sex = "men"
+
+[brand.women]
+sex = "women"
+
+# 자라는 GitHub 서버에서 상품 JSON 요청이 403(봇 차단)으로 막혀 바로가기만 둔다 (2026-11-22 확인).
+# 막힘이 풀리면 아래처럼 바꾸면 된다 (source = "zara" 수집기는 남겨 둠):
+#   source = "zara" / limit = 60 / [brand.men] category_id = 2544454 / [brand.women] category_id = 2546081
+[[brand]]
+id = "zara"
+name = "ZARA"
+source = "link"
+url = "https://www.zara.com/kr/ko/"
+
+# 유니클로 신상품순
+[[brand]]
+id = "uniqlo"
+name = "UNIQLO"
+source = "uniqlo"
+limit = 60
+
+[brand.men]
+gender_path = "57893"
+
+[brand.women]
+gender_path = "57892"
+
+# COS·마시모뚜띠는 봇 차단(Akamai)으로 GitHub 서버에서 상품 API·페이지 모두 막혀 있어 바로가기만 둔다 (2026-11 확인).
+[[brand]]
+id = "cos"
+name = "COS"
+source = "link"
+url = "https://www.cos.com/"
+
+[[brand]]
+id = "massimodutti"
+name = "MASSIMO DUTTI"
+source = "link"
+url = "https://www.massimodutti.com/kr/"
 
 # 랄프로렌 공식몰은 봇 차단(Akamai)으로 자동 수집이 불가해 바로가기만 둔다.
 [[brand]]

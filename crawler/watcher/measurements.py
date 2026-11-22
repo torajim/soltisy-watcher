@@ -13,7 +13,7 @@ KEYS = ("shoulder", "chest", "sleeve", "length", "waist", "hip", "thigh", "rise"
 _NAME_RULES: list[tuple[re.Pattern, str]] = [
     (re.compile(r"어깨|shoulder", re.I), "shoulder"),
     (re.compile(r"가슴|chest|bust|pit", re.I), "chest"),
-    (re.compile(r"^소매\s*길이$|^sleeve(\s*length)?$", re.I), "sleeve"),
+    (re.compile(r"^소매(\s*길이|기장)?$|^sleeve(\s*length)?$", re.I), "sleeve"),
     (re.compile(r"허리|waist", re.I), "waist"),
     (re.compile(r"엉덩이|힙|hip", re.I), "hip"),
     (re.compile(r"허벅지|thigh", re.I), "thigh"),

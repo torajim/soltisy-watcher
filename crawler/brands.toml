@@ -134,18 +134,14 @@ sex = "men"
 [brand.women]
 sex = "women"
 
-# 자라 THE NEW
+# 자라는 GitHub 서버에서 상품 JSON 요청이 403(봇 차단)으로 막혀 바로가기만 둔다 (2026-11-22 확인).
+# 막힘이 풀리면 아래처럼 바꾸면 된다 (source = "zara" 수집기는 남겨 둠):
+#   source = "zara" / limit = 60 / [brand.men] category_id = 2544454 / [brand.women] category_id = 2546081
 [[brand]]
 id = "zara"
 name = "ZARA"
-source = "zara"
-limit = 60
-
-[brand.men]
-category_id = 2544454
-
-[brand.women]
-category_id = 2546081
+source = "link"
+url = "https://www.zara.com/kr/ko/"
 
 # 유니클로 신상품순
 [[brand]]

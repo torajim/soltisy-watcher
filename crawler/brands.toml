@@ -206,6 +206,13 @@ name = "MASSIMO DUTTI"
 source = "link"
 url = "https://www.massimodutti.com/kr/"
 
+# 오어슬로우는 한국 공식몰이 없고, 무신사 브랜드관은 봇 차단(Cloudflare 403)이라 바로가기만 둔다 (2026-11-25 확인).
+[[brand]]
+id = "orslow"
+name = "ORSLOW"
+source = "link"
+url = "https://www.musinsa.com/brand/orslow?gf=M"
+
 # 랄프로렌 공식몰은 봇 차단(Akamai)으로 자동 수집이 불가해 바로가기만 둔다.
 [[brand]]
 id = "polo"

@@ -9,6 +9,8 @@
 # source = "zara"        : zara.com/kr 카테고리 번호 (category_id, /kr/ko/categories?ajax=true 에서 확인)
 # source = "uniqlo"      : uniqlo.com/kr 성별 경로 id (gender_path, MEN 57893 / WOMEN 57892)
 # source = "thehyundai"  : 더현대Hi 브랜드관. brand_code(검색 targetCode)·sect_id(브랜드관 번호)·sex(men/women)
+# source = "carhartt"    : carhartt-wip.co.kr 상위 분류 번호 (main_category_id, 메뉴 링크의 ?mainCategoryId=, MEN 15 / WOMEN 19)
+# source = "adererror"   : adererror.com/kr 상단 메뉴 번호 (header_idx, 메뉴 링크의 /shop?header_idx=)
 #
 # 성별: 상품마다 men / women 을 붙여 앱 설정(남성·여성·전체)으로 걸러 본다.
 #   gender = "women"         : 브랜드 전체가 한 성별일 때 (생략하면 "men")
@@ -134,6 +136,41 @@ sex = "men"
 [brand.women]
 sex = "women"
 
+# 칼하트WIP 코리아 공식몰 (웍스아웃 운영). 최근 등록순, 색상마다 따로 나온다
+[[brand]]
+id = "carhartt"
+name = "CARHARTT WIP"
+source = "carhartt"
+limit = 60
+
+[brand.men]
+main_category_id = 15
+
+[brand.women]
+main_category_id = 19
+
+# 아웃스탠딩 (Cafe24 자체몰) NEW ARRIVALS. 남성 브랜드. 실측표는 이미지라 실측 없음
+[[brand]]
+id = "outstanding"
+name = "OUTSTANDING"
+source = "cafe24"
+base_url = "https://www.outstanding-co.kr"
+new_category_no = 128
+limit = 60
+
+# 아더에러 공식몰 남성·여성 '의류 > 전체보기' 신상품순. 같은 상품이 남녀 목록에 모두 있으면 공용으로 합쳐진다
+[[brand]]
+id = "adererror"
+name = "ADER ERROR"
+source = "adererror"
+limit = 60
+
+[brand.men]
+header_idx = 1737087
+
+[brand.women]
+header_idx = 1737125
+
 # 자라는 GitHub 서버에서 상품 JSON 요청이 403(봇 차단)으로 막혀 바로가기만 둔다 (2026-11-22 확인).
 # 막힘이 풀리면 아래처럼 바꾸면 된다 (source = "zara" 수집기는 남겨 둠):
 #   source = "zara" / limit = 60 / [brand.men] category_id = 2544454 / [brand.women] category_id = 2546081
@@ -168,6 +205,13 @@ id = "massimodutti"
 name = "MASSIMO DUTTI"
 source = "link"
 url = "https://www.massimodutti.com/kr/"
+
+# 오어슬로우는 한국 공식몰이 없고, 무신사 브랜드관은 봇 차단(Cloudflare 403)이라 바로가기만 둔다 (2026-11-25 확인).
+[[brand]]
+id = "orslow"
+name = "ORSLOW"
+source = "link"
+url = "https://www.musinsa.com/brand/orslow?gf=M"
 
 # 랄프로렌 공식몰은 봇 차단(Akamai)으로 자동 수집이 불가해 바로가기만 둔다.
 [[brand]]

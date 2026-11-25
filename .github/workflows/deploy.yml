@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       failed: ${{ steps.check.outputs.failed }}
+      crawled: ${{ steps.mode.outputs.crawl }}
     steps:
       - uses: actions/checkout@v7
 
@@ -51,6 +52,7 @@ jobs:
         run: npm test
 
       # 한 브랜드가 실패해도 이전 배포본의 그 브랜드 데이터를 유지하기 위해 먼저 받아온다
+      # push(머지) 배포는 이 데이터를 그대로 다시 올리기만 한다.
       - name: Fetch previous data
         if: github.event_name != 'pull_request'
         continue-on-error: true
@@ -59,14 +61,27 @@ jobs:
           url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/data/products.json"
           curl -fsSL "$url" -o site/data/products.json || rm -f site/data/products.json
 
-      - name: Crawl
+      # 크롤링은 예약 실행(schedule)과 수동 실행(workflow_dispatch)에서만 한다.
+      # 코드 배포(push)는 기존 데이터를 재사용하고, 기존 데이터를 못 받아온 경우에만 예외로 수집한다.
+      - name: Decide whether to crawl
+        id: mode
         if: github.event_name != 'pull_request'
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != "push" ] || [ ! -s site/data/products.json ]; then
+            echo "crawl=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "crawl=false" >> "$GITHUB_OUTPUT"
+            echo "코드 배포라서 크롤링을 건너뛰고 기존 데이터를 그대로 배포했어요." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Crawl
+        if: steps.mode.outputs.crawl == 'true'
         working-directory: crawler
         run: python -m watcher
 
       - name: Check brand results
         id: check
-        if: github.event_name != 'pull_request'
+        if: steps.mode.outputs.crawl == 'true'
         run: |
           failed=$(python3 -c "import json; d=json.load(open('site/data/products.json')); print(', '.join(b['name'] for b in d['brands'] if not b['ok']))")
           echo "failed=$failed" >> "$GITHUB_OUTPUT"
@@ -101,6 +116,7 @@ jobs:
       - uses: actions/github-script@v9
         env:
           FAILED: ${{ needs.build.outputs.failed }}
+          CRAWLED: ${{ needs.build.outputs.crawled }}
           BUILD_RESULT: ${{ needs.build.result }}
           DEPLOY_RESULT: ${{ needs.deploy.result }}
         with:
@@ -115,6 +131,8 @@ jobs:
             const { data: open } = await github.rest.issues.listForRepo({ owner, repo, labels: label, state: "open" });
 
             if (!failed && !buildFailed && !deployFailed) {
+              // 크롤링 없이 코드만 배포한 경우엔 수집 상태를 모르니 알림 이슈를 건드리지 않는다
+              if (process.env.CRAWLED !== "true") return;
               for (const issue of open) {
                 await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: `✅ 모든 브랜드 수집이 정상으로 돌아왔어요. ([실행 기록](${runUrl}))` });
                 await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: "closed", state_reason: "completed" });

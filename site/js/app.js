@@ -90,28 +90,43 @@ function showState(msg) {
 // ---------- 필터 ----------
 
 function renderChips() {
-  const brands = $("#brandChips");
   const counts = {};
   for (const p of state.all) counts[p.brand] = (counts[p.brand] || 0) + 1;
-  // 상품을 직접 가져오지 못하는 브랜드(바로가기 전용·수집된 상품 없음)는 탭에서 뺀다
+  // 상품을 직접 가져오지 못하는 브랜드(바로가기 전용·수집된 상품 없음)는 목록에서 뺀다
   const feedBrands = tabBrands(state.data.brands, state.all);
   const items = [
     { id: "all", name: "ALL", count: state.all.length },
     ...feedBrands.map((b) => ({ id: b.id, name: b.name, count: counts[b.id] || 0, notice: staleNotice(b) })),
   ];
-  brands.replaceChildren(
+  const countText = (b) => (b.notice ? `${b.count} !` : String(b.count));
+
+  // 상단에는 지금 고른 브랜드 하나만 보여주고, 누르면 전체 브랜드를 한 화면에 펼친다
+  const current = items.find((b) => b.id === state.prefs.brand) || items[0];
+  const trigger = $("#openBrands");
+  trigger.replaceChildren(
+    el("span", { class: "label", text: current.name }),
+    el("span", { class: "n", text: countText(current) }),
+    el("span", { class: "caret", "aria-hidden": "true", text: "▾" }),
+  );
+  trigger.classList.toggle("stale", !!current.notice);
+  trigger.title = current.notice || "";
+
+  $("#brandGrid").replaceChildren(
     ...items.map((b) =>
       el(
         "button",
         {
-          class: b.notice ? "chip stale" : "chip",
+          class: ["brand-tile", b.id === "all" && "all", b.notice && "stale"].filter(Boolean).join(" "),
           type: "button",
           title: b.notice,
           "aria-pressed": String(state.prefs.brand === b.id),
-          onclick: () => setPref("brand", b.id),
+          onclick: () => {
+            $("#brandSheet").close();
+            setPref("brand", b.id);
+          },
         },
-        b.name,
-        el("span", { class: "n", text: b.notice ? `${b.count} !` : b.count }),
+        el("span", { class: "label", text: b.name }),
+        el("span", { class: "n", text: countText(b) }),
       ),
     ),
   );
@@ -457,6 +472,12 @@ function setupSettings() {
   buildMeasureInputs();
   buildGenderPicker();
   $("#openSettings").addEventListener("click", openSettings);
+  $("#openBrands").addEventListener("click", () => {
+    const sheet = $("#brandSheet");
+    sheet.showModal();
+    // 브랜드가 많아 목록이 길어져도 지금 고른 브랜드가 보이게
+    sheet.querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: "nearest" });
+  });
   $("#settingsForm").addEventListener("submit", (e) => {
     e.preventDefault();
     state.profile = readSettingsForm();

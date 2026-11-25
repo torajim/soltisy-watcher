@@ -16,7 +16,8 @@
 <body>
   <header class="topbar">
     <div class="row">
-      <nav class="chips" id="brandChips" aria-label="브랜드"></nav>
+      <button class="chip brand-trigger" id="openBrands" type="button" aria-haspopup="dialog" aria-label="브랜드 고르기"></button>
+      <span class="spacer"></span>
       <button class="icon-btn" id="openSettings" aria-label="설정">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4.4 0-8 2.2-8 5v2h16v-2c0-2.8-3.6-5-8-5Z"/></svg>
       </button>
@@ -39,6 +40,17 @@
       <button class="icon-btn" aria-label="닫기">✕</button>
     </form>
     <div class="sheet-body" id="sizeSheetBody"></div>
+  </dialog>
+
+  <!-- 브랜드 고르기 -->
+  <dialog class="sheet" id="brandSheet">
+    <form method="dialog" class="sheet-head">
+      <h2>브랜드</h2>
+      <button class="icon-btn" aria-label="닫기">✕</button>
+    </form>
+    <div class="sheet-body">
+      <div class="brand-grid" id="brandGrid" role="group" aria-label="브랜드"></div>
+    </div>
   </dialog>
 
   <!-- 설정 (보기 · 내 사이즈) -->

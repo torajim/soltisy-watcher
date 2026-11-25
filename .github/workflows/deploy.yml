@@ -43,6 +43,11 @@ jobs:
         working-directory: crawler
         run: pip install -r requirements.txt
 
+      - name: Probe new brand crawl (temporary)
+        if: github.event_name == 'pull_request'
+        working-directory: crawler
+        run: python probe_tmp.py
+
       - name: Test crawler
         working-directory: crawler
         run: pytest -q

@@ -57,41 +57,19 @@
     </div>
   </dialog>
 
-  <!-- 설정 (보기 · 내 사이즈) -->
+  <!-- 설정 (보기) -->
   <dialog class="sheet" id="settingsSheet">
     <form method="dialog" class="sheet-head">
       <h2>설정</h2>
       <button class="icon-btn" aria-label="닫기">✕</button>
     </form>
-    <form class="sheet-body settings" id="settingsForm">
+    <div class="sheet-body settings">
       <section>
         <h3>보여줄 상품</h3>
         <p class="hint">고르면 바로 적용돼요. 남녀 공용 상품은 양쪽에 모두 나와요.</p>
         <div class="chips segmented" id="genderPicker" role="group" aria-label="성별"></div>
       </section>
-      <section>
-        <h3>평소 입는 사이즈</h3>
-        <p class="hint">브랜드마다 표기가 달라서 여러 개를 쉼표로 적어두면 앞에서부터 맞는 걸 찾아요.<br />예) 상의 <code>100, 48, L</code> · 하의 <code>32, 82</code></p>
-        <label>상의 · 아우터<input name="label-top" inputmode="text" autocomplete="off" placeholder="100, 48, L" /></label>
-        <label>하의<input name="label-bottom" inputmode="text" autocomplete="off" placeholder="32, 82" /></label>
-        <label>신발<input name="label-shoes" inputmode="numeric" autocomplete="off" placeholder="270" /></label>
-      </section>
-      <section>
-        <h3>잘 맞는 옷의 실측 (cm)</h3>
-        <p class="hint">가장 잘 맞는 옷을 바닥에 평평하게 놓고 잰 값(단면)을 적어주세요. 상품 실측표와 비교해서 가장 가까운 사이즈를 추천해요. 가슴·어깨(상의), 허리(하의) 중 하나는 꼭 필요해요.</p>
-        <div class="grid" id="measureTop"></div>
-        <div class="grid" id="measureBottom"></div>
-      </section>
-      <section>
-        <h3>체형 사진 <span class="badge">준비 중</span></h3>
-        <p class="hint">전신 사진을 올려두면 상품을 입혀서 보여주는 가상 피팅 기능을 준비하고 있어요.</p>
-        <button type="button" class="btn ghost" id="tryonPhoto" disabled>사진 올리기</button>
-      </section>
-      <div class="actions">
-        <button type="button" class="btn ghost" id="resetProfile">초기화</button>
-        <button type="submit" class="btn primary">저장</button>
-      </div>
-    </form>
+    </div>
   </dialog>
 
   <template id="cardTpl">
@@ -102,11 +80,9 @@
         <div class="brand"></div>
         <h2 class="name"></h2>
         <div class="price"></div>
-        <div class="rec"></div>
         <div class="sizes"></div>
         <div class="buttons">
           <button class="btn ghost size-btn" type="button">사이즈</button>
-          <button class="btn ghost tryon-btn" type="button" hidden>피팅</button>
           <button class="btn ghost share-btn" type="button" aria-label="공유하기" title="공유하기">
             <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
           </button>

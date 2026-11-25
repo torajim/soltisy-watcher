@@ -1,8 +1,7 @@
 import { GENDER_FILTERS, TYPE_FILTERS, brandsKey, discountRate, filterProducts, formatPrice, imageWindow, interleave, matchesGender, normalizeBrands, restoreIndex, staleNotice, tabBrands, timeAgo } from "./feed.js";
-import { MEASURE_FIELDS, MEASURE_LABELS, formatDiff, hasProfile, parseLabelList, recommend } from "./sizing.js";
+import { MEASURE_FIELDS, MEASURE_LABELS } from "./sizing.js";
 import { clipboardText, itemFromSearch, shareData } from "./share.js";
-import { loadPosition, loadPrefs, loadProfile, savePosition, savePrefs, saveProfile } from "./store.js";
-import * as tryon from "./tryon.js";
+import { clearLegacyProfile, loadPosition, loadPrefs, savePosition, savePrefs } from "./store.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, attrs = {}, ...children) => {
@@ -22,7 +21,6 @@ const state = {
   all: [],
   list: [],
   prefs: loadPrefs(),
-  profile: loadProfile(),
   current: 0,
   // 공유 링크(?item=<id>)로 들어왔을 때 처음에 보여줄 상품
   sharedId: null,
@@ -255,10 +253,8 @@ function buildCard(tpl, p, index) {
   $(".size-btn", card).addEventListener("click", () => openSizeSheet(p));
   $(".share-btn", card).addEventListener("click", () => shareProduct(p));
   if (!p.sizes.length) $(".size-btn", card).hidden = true;
-  // 가상 피팅이 준비되기 전에는 누를 수 없는 버튼을 보여주지 않는다
-  $(".tryon-btn", card).hidden = !tryon.isAvailable();
 
-  fillSizeInfo(card, p);
+  $(".sizes", card).replaceChildren(...p.sizes.map((s) => el("span", { class: `sz${s.inStock ? "" : " out"}`, text: s.label })));
   return card;
 }
 
@@ -318,29 +314,6 @@ function onImageError(img, dot, card) {
   const dots = $(".dots", card);
   if (dots.children.length < 2) dots.hidden = true;
   if (!gallery.querySelector("img")) gallery.append(el("div", { class: "state", text: "이미지를 불러오지 못했어요" }));
-}
-
-function fillSizeInfo(card, p) {
-  const rec = recommend(p, state.profile);
-  const recEl = $(".rec", card);
-  recEl.className = "rec";
-  recEl.replaceChildren();
-  if (rec) {
-    if (!rec.inStock) recEl.classList.add("soldout");
-    const how = rec.method === "measure" ? `실측 기준 ${rec.verdict}` : "평소 사이즈 기준";
-    recEl.append(`추천 ${rec.label} · ${rec.inStock ? how : "품절"}`);
-    if (rec.labelAlt) recEl.append(el("span", { class: "muted", text: ` (평소 사이즈 ${rec.labelAlt})` }));
-  } else if (p.sizes.length && p.type !== "etc" && !hasProfile(state.profile)) {
-    recEl.append(el("span", { class: "muted", text: "내 사이즈를 등록하면 추천해 드려요 →", role: "button", onclick: openSettings }));
-  }
-
-  $(".sizes", card).replaceChildren(
-    ...p.sizes.map((s) => el("span", { class: `sz${s.inStock ? "" : " out"}${rec && rec.label === s.label ? " pick" : ""}`, text: s.label })),
-  );
-}
-
-function refreshSizeInfo() {
-  for (const card of feed.querySelectorAll(".card")) fillSizeInfo(card, state.list[Number(card.dataset.index)]);
 }
 
 let observer;
@@ -403,50 +376,20 @@ function openSizeSheet(p) {
   const body = $("#sizeSheetBody");
   body.replaceChildren();
 
-  const rec = recommend(p, state.profile);
-  const box = el("div", { class: "rec-box" });
-  if (rec) {
-    box.append("추천 사이즈 ", el("b", { text: rec.label }), rec.inStock ? "" : " (품절)");
-    if (rec.method === "measure") {
-      box.append(el("br"), `내 옷 실측과 비교: ${rec.verdict} (평균 오차 ${rec.score}cm)`);
-      if (rec.labelAlt) box.append(el("br"), `평소 사이즈로는 ${rec.labelAlt}`);
-    } else {
-      box.append(el("br"), "평소 입는 사이즈 표기 기준이에요. 실측을 등록하면 더 정확해져요.");
-    }
-  } else if (["top", "bottom", "shoes"].includes(p.type)) {
-    box.append("내 사이즈를 등록하면 추천해 드려요. ", el("a", { href: "#", onclick: (e) => { e.preventDefault(); sheet.close(); openSettings(); }, text: "등록하기" }));
-  } else {
-    box.append("사이즈 추천 대상이 아닌 상품이에요.");
-  }
-  body.append(box);
-
   const keys = [...new Set(p.sizes.flatMap((s) => Object.keys(s.measurements || {})))];
   const order = [...MEASURE_FIELDS.top, ...MEASURE_FIELDS.bottom].map((f) => f.key);
   keys.sort((a, b) => order.indexOf(a) - order.indexOf(b));
-  const mine = state.profile.measurements[p.type] || {};
 
   const table = el("table", { class: "size-table" });
   table.append(el("thead", {}, el("tr", {}, el("th", { text: "사이즈" }), ...keys.map((k) => el("th", { text: MEASURE_LABELS[k] || k })), el("th", { text: "재고" }))));
   const tbody = el("tbody");
   for (const s of p.sizes) {
-    const tr = el("tr", { class: `${rec && rec.label === s.label ? "pick" : ""} ${s.inStock ? "" : "out"}` });
+    const tr = el("tr", { class: s.inStock ? "" : "out" });
     const name = [s.label, ...(s.aliases || [])].join(" / ");
     tr.append(el("td", { text: name }));
-    for (const k of keys) {
-      const v = s.measurements?.[k];
-      const td = el("td", { text: v ?? "-" });
-      const m = Number(mine[k]);
-      if (v != null && m) {
-        const d = Math.round((v - m) * 10) / 10;
-        td.append(el("span", { class: `d ${d > 0 ? "plus" : d < 0 ? "minus" : ""}`, text: formatDiff(d) }));
-      }
-      tr.append(td);
-    }
+    for (const k of keys) tr.append(el("td", { text: s.measurements?.[k] ?? "-" }));
     tr.append(el("td", { text: s.inStock ? "○" : "품절" }));
     tbody.append(tr);
-  }
-  if (keys.some((k) => Number(mine[k]))) {
-    tbody.append(el("tr", { class: "mine" }, el("td", { text: "내 옷" }), ...keys.map((k) => el("td", { text: Number(mine[k]) || "-" })), el("td")));
   }
   table.append(tbody);
   body.append(el("div", { class: "table-wrap" }, table));
@@ -456,18 +399,6 @@ function openSizeSheet(p) {
 }
 
 // ---------- 설정 ----------
-
-function buildMeasureInputs() {
-  for (const [type, id, title] of [["top", "#measureTop", "상의"], ["bottom", "#measureBottom", "하의"]]) {
-    const grid = $(id);
-    grid.replaceChildren(
-      el("h4", { text: title }),
-      ...MEASURE_FIELDS[type].map((f) =>
-        el("label", {}, f.label, el("input", { name: `m-${type}-${f.key}`, type: "number", inputmode: "decimal", step: "0.1", min: "0", max: "200", placeholder: "-" })),
-      ),
-    );
-  }
-}
 
 function buildGenderPicker() {
   $("#genderPicker").replaceChildren(
@@ -483,47 +414,15 @@ function syncGenderPicker() {
 
 function openSettings() {
   syncGenderPicker();
-  const form = $("#settingsForm");
-  const p = state.profile;
-  for (const t of ["top", "bottom", "shoes"]) form.elements[`label-${t}`].value = (p.labels[t] || []).join(", ");
-  for (const t of ["top", "bottom"]) {
-    for (const f of MEASURE_FIELDS[t]) form.elements[`m-${t}-${f.key}`].value = p.measurements[t]?.[f.key] ?? "";
-  }
   $("#settingsSheet").showModal();
 }
 
-function readSettingsForm() {
-  const form = $("#settingsForm");
-  const profile = { labels: {}, measurements: { top: {}, bottom: {} } };
-  for (const t of ["top", "bottom", "shoes"]) profile.labels[t] = parseLabelList(form.elements[`label-${t}`].value);
-  for (const t of ["top", "bottom"]) {
-    for (const f of MEASURE_FIELDS[t]) {
-      const v = parseFloat(form.elements[`m-${t}-${f.key}`].value);
-      if (v > 0) profile.measurements[t][f.key] = v;
-    }
-  }
-  return profile;
-}
-
 function setupSettings() {
-  buildMeasureInputs();
   buildGenderPicker();
   $("#openSettings").addEventListener("click", openSettings);
   $("#openBrands").addEventListener("click", openBrandSheet);
   // 적용 버튼·닫기·바깥 탭 어느 쪽으로 닫아도 고른 대로 적용한다
   $("#brandSheet").addEventListener("close", applyDraftBrands);
-  $("#settingsForm").addEventListener("submit", (e) => {
-    e.preventDefault();
-    state.profile = readSettingsForm();
-    const saved = saveProfile(state.profile);
-    $("#settingsSheet").close();
-    refreshSizeInfo();
-    toast(saved ? "저장했어요. 상품마다 추천 사이즈를 보여드릴게요." : "이 브라우저에서는 저장이 안 돼서 이번 방문에만 적용돼요.");
-  });
-  $("#resetProfile").addEventListener("click", () => {
-    const form = $("#settingsForm");
-    for (const input of form.querySelectorAll("input")) input.value = "";
-  });
 }
 
 // ---------- 기타 ----------
@@ -571,6 +470,7 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+clearLegacyProfile();
 setupSettings();
 load().then(() => {
   if (state.data?.generatedAt) document.title = `Soltisy Watcher · ${timeAgo(state.data.generatedAt)} 업데이트`;

@@ -92,6 +92,20 @@ button, input { font: inherit; color: inherit; }
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
 }
 
+/* ---------- 찜 ---------- */
+.heart { fill: none; }
+[aria-pressed="true"] .heart { fill: var(--warn); stroke: var(--warn); }
+.fav-toggle { position: relative; }
+.fav-toggle[aria-pressed="true"] { border-color: var(--warn); }
+.fav-count {
+  position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--warn); color: #111; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center;
+}
+.fav-title { display: inline-flex; align-items: center; gap: 6px; }
+.fav-btn { padding-left: 12px; padding-right: 12px; }
+.fav-btn[aria-pressed="true"] { border-color: var(--warn); }
+.gone { margin-top: 6px; font-size: 12px; color: var(--muted); }
+
 /* ---------- 피드: 세로 스와이프 ---------- */
 .feed {
   height: 100dvh; overflow-y: auto; scroll-snap-type: y mandatory;

@@ -1,8 +1,10 @@
-// 브라우저 저장소 (필터 상태). 사생활 보호 모드 등에서 실패해도 앱은 동작해야 한다.
+// 브라우저 저장소 (필터 상태, 찜 목록). 사생활 보호 모드 등에서 실패해도 앱은 동작해야 한다.
 import { normalizeBrands } from "./feed.js";
+import { normalizeFavorites } from "./favorites.js";
 
 const PREFS_KEY = "soltisy.prefs.v1";
 const POSITION_KEY = "soltisy.position.v1";
+const FAVORITES_KEY = "soltisy.favorites.v1";
 
 function read(key) {
   try {
@@ -49,3 +51,7 @@ export function savePosition(key, pos) {
   all[key] = pos;
   return write(POSITION_KEY, all);
 }
+
+// 찜 목록: [{ id, savedAt, product }, ...]
+export const loadFavorites = () => normalizeFavorites(read(FAVORITES_KEY));
+export const saveFavorites = (favs) => write(FAVORITES_KEY, favs);

@@ -43,8 +43,25 @@ export function tabBrands(brands, products) {
   return brands.filter((b) => !b.link && has.has(b.id));
 }
 
-export function filterProducts(products, { brand = "all", type = "all" } = {}) {
-  return products.filter((p) => (brand === "all" || p.brand === brand) && (type === "all" || p.type === type));
+/** brands 가 비어 있으면 모든 브랜드. 여러 브랜드를 고를 수 있다. */
+export function filterProducts(products, { brands = [], type = "all" } = {}) {
+  const pick = new Set(brands);
+  return products.filter((p) => (!pick.size || pick.has(p.brand)) && (type === "all" || p.type === type));
+}
+
+/** 고른 브랜드 목록을 정리한다: 예전 저장값(brand 하나)도 받고, 지금 고를 수 없는 브랜드는 뺀다. */
+export function normalizeBrands(prefs, available) {
+  let list = Array.isArray(prefs?.brands) ? prefs.brands : prefs?.brand && prefs.brand !== "all" ? [prefs.brand] : [];
+  if (available) {
+    const ok = new Set(available);
+    list = list.filter((id) => ok.has(id));
+  }
+  return [...new Set(list)];
+}
+
+/** 같은 브랜드 조합이면 고른 순서와 상관없이 같은 키 (마지막으로 보던 위치 저장용). */
+export function brandsKey(brands) {
+  return brands.length ? [...brands].sort().join(",") : "all";
 }
 
 export function formatPrice(n) {

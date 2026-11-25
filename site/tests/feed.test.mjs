@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { discountRate, filterProducts, formatPrice, imageWindow, interleave, matchesGender, restoreIndex, staleNotice, tabBrands, timeAgo } from "../js/feed.js";
+import { brandsKey, discountRate, filterProducts, normalizeBrands, formatPrice, imageWindow, interleave, matchesGender, restoreIndex, staleNotice, tabBrands, timeAgo } from "../js/feed.js";
 
 const P = (brand, rank, type = "top") => ({ id: `${brand}:${rank}`, brand, rank, type, price: 100, originalPrice: 100 });
 
@@ -16,10 +16,31 @@ test("설정에 없는 브랜드도 빠지지 않음", () => {
 
 test("브랜드/종류 필터", () => {
   const list = [P("a", 0, "top"), P("a", 1, "bottom"), P("b", 0, "top")];
-  assert.equal(filterProducts(list, { brand: "a" }).length, 2);
+  assert.equal(filterProducts(list, { brands: ["a"] }).length, 2);
   assert.equal(filterProducts(list, { type: "top" }).length, 2);
-  assert.equal(filterProducts(list, { brand: "a", type: "bottom" }).length, 1);
+  assert.equal(filterProducts(list, { brands: ["a"], type: "bottom" }).length, 1);
   assert.equal(filterProducts(list).length, 3);
+  assert.equal(filterProducts(list, { brands: [] }).length, 3);
+});
+
+test("여러 브랜드 고르기", () => {
+  const list = [P("a", 0, "top"), P("b", 0, "bottom"), P("c", 0, "top")];
+  assert.deepEqual(filterProducts(list, { brands: ["a", "c"] }).map((p) => p.brand), ["a", "c"]);
+  assert.deepEqual(filterProducts(list, { brands: ["a", "b"], type: "top" }).map((p) => p.brand), ["a"]);
+});
+
+test("고른 브랜드 정리: 예전 저장값 호환, 없는 브랜드 제외, 중복 제거", () => {
+  assert.deepEqual(normalizeBrands({ brand: "a" }), ["a"]);
+  assert.deepEqual(normalizeBrands({ brand: "all" }), []);
+  assert.deepEqual(normalizeBrands({}), []);
+  assert.deepEqual(normalizeBrands({ brands: ["a", "x", "a", "b"] }, ["a", "b"]), ["a", "b"]);
+  assert.deepEqual(normalizeBrands({ brands: "a" }), []);
+});
+
+test("브랜드 조합 키는 순서와 상관없고, 브랜드 하나면 예전 키와 같다", () => {
+  assert.equal(brandsKey([]), "all");
+  assert.equal(brandsKey(["peer"]), "peer");
+  assert.equal(brandsKey(["b", "a"]), brandsKey(["a", "b"]));
 });
 
 test("가격/할인/시간 표시", () => {

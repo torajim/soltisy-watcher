@@ -13,13 +13,13 @@ KEYS = ("shoulder", "chest", "sleeve", "length", "waist", "hip", "thigh", "rise"
 _NAME_RULES: list[tuple[re.Pattern, str]] = [
     (re.compile(r"어깨|shoulder", re.I), "shoulder"),
     (re.compile(r"가슴|chest|bust|pit", re.I), "chest"),
-    (re.compile(r"^소매(\s*길이|기장)?$|^sleeve(\s*length)?$", re.I), "sleeve"),
+    (re.compile(r"^소매(\s*길이|\s*기장|장)?$|^sleeve(\s*length)?$", re.I), "sleeve"),
     (re.compile(r"허리|waist", re.I), "waist"),
     (re.compile(r"엉덩이|힙|hip", re.I), "hip"),
     (re.compile(r"허벅지|thigh", re.I), "thigh"),
     (re.compile(r"^앞\s*밑위|^밑위|^(front\s*)?rise$", re.I), "rise"),
     (re.compile(r"^(?!.*소매).*(밑단|부리)|^hem|leg\s*opening", re.I), "hem"),
-    (re.compile(r"^총\s*(길이|장)$|^(total\s*)?length$|outseam|^총기장$|^기장$", re.I), "length"),
+    (re.compile(r"^총\s*(길이|장)$|^(total\s*)?length$|outseam|^총\s*기장$|^기장$", re.I), "length"),
 ]
 
 # 이름에 둘레/단면 표시가 없을 때, 이 값보다 크면 둘레로 보고 절반으로 환산한다.
@@ -27,8 +27,12 @@ _CIRCUMFERENCE_THRESHOLD = {"chest": 80.0, "waist": 58.0, "hip": 75.0, "thigh": 
 _WIDTH_KEYS = set(_CIRCUMFERENCE_THRESHOLD)
 
 
+# '가슴너비 [CHEST WIDTH]' 처럼 뒤에 붙은 영문 병기는 항목 판정에서 뺀다 (단면/둘레 판정에는 쓴다)
+_TRAILING_NOTE = re.compile(r"\s*[\[(][^\])]*[\])]\s*$")
+
+
 def key_for(name: str) -> str | None:
-    name = name.strip()
+    name = _TRAILING_NOTE.sub("", name.strip()) or name.strip()
     for pattern, key in _NAME_RULES:
         if pattern.search(name):
             return key

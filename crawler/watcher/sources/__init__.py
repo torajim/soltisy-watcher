@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from .adererror import AderErrorSource
 from .base import Http, Source
+from .carhartt import CarharttSource
 from .cafe24 import Cafe24Source
 from .prada import PradaSource
 from .ssf import SsfSource
@@ -17,6 +19,8 @@ SOURCE_TYPES: dict[str, type[Source]] = {
     "zara": ZaraSource,
     "uniqlo": UniqloSource,
     "thehyundai": TheHyundaiSource,
+    "carhartt": CarharttSource,
+    "adererror": AderErrorSource,
 }
 
 

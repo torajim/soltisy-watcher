@@ -33,6 +33,9 @@ site/               정적 모바일 웹 앱 (빌드 없음, 바닐라 JS)
 | COOR | coor.kr (Cafe24) 남성 (cate_no=94) · 여성 (93) NEW ARRIVALS | 남녀 각각 60개. 상품 정보 표의 텍스트 실측 사용 |
 | PEER | 더현대Hi 피어 브랜드관 (M00021) | 남녀 각각 최신상품순 60개, 품절·아동 제외. 카드에 실제 브랜드 표시. 실측 없음 |
 | UNIQLO | uniqlo.com/kr 남성 (57893) · 여성 (57892) 신상품순 | 남녀 각각 60개, 판매 예정 제외. 실측 없음 |
+| CARHARTT WIP | carhartt-wip.co.kr 남성 (mainCategoryId=15) · 여성 (19) | 남녀 각각 최근 등록순 60개, 판매 예정 제외. 색상별로 따로 표시. 사이즈별 실측 사용 |
+| OUTSTANDING | outstanding-co.kr (Cafe24) NEW ARRIVALS (cate_no=128) | 60개. 실측표가 이미지라 실측 없음 |
+| ADER ERROR | adererror.com/kr 남성 (header_idx=1737087) · 여성 (1737125) 의류 전체보기 | 남녀 각각 신상품순 60개. 사이즈 가이드 실측 사용 |
 | POLO · RRL · GUCCI · ZARA · COS · MASSIMO DUTTI | 수집 안 함 | 자동 수집 불가/미확인이라 앱 탭에 표시하지 않음 (`brands.toml` 에 `source = "link"` 로만 남겨 둠) |
 
 사이즈 프로필은 **브라우저(localStorage)에만** 저장되고 서버로 보내지 않습니다.

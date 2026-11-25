@@ -69,7 +69,7 @@ python3 -m http.server 8000    # http://localhost:8000
 ## 배포 (GitHub Pages)
 
 1. 저장소 **Settings → Pages → Build and deployment → Source** 를 **GitHub Actions** 로 설정
-2. `main` 브랜치에 푸시하면 테스트 → 수집 → 배포. 이후 6시간마다 자동 갱신 (Actions 탭에서 수동 실행도 가능)
+2. `main` 브랜치에 푸시하면 테스트 → 배포 (수집은 건너뛰고 직전 데이터를 그대로 사용, 직전 데이터가 없을 때만 수집). 수집은 6시간마다 자동 실행되며 Actions 탭에서 수동 실행도 가능
 3. 주소: `https://torajim.github.io/soltisy-watcher/` — 모바일 브라우저에서 "홈 화면에 추가"하면 앱처럼 쓸 수 있음
    (`torajim.github.io` 사용자 사이트와는 별개의 하위 경로라 서로 영향이 없음)
 

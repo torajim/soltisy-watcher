@@ -1,4 +1,4 @@
-import { GENDER_FILTERS, TYPE_FILTERS, discountRate, filterProducts, formatPrice, imageWindow, interleave, matchesGender, restoreIndex, staleNotice, tabBrands, timeAgo } from "./feed.js";
+import { GENDER_FILTERS, TYPE_FILTERS, brandsKey, discountRate, filterProducts, formatPrice, imageWindow, interleave, matchesGender, normalizeBrands, restoreIndex, staleNotice, tabBrands, timeAgo } from "./feed.js";
 import { MEASURE_FIELDS, MEASURE_LABELS, formatDiff, hasProfile, parseLabelList, recommend } from "./sizing.js";
 import { clipboardText, itemFromSearch, shareData } from "./share.js";
 import { loadPosition, loadPrefs, loadProfile, savePosition, savePrefs, saveProfile } from "./store.js";
@@ -56,7 +56,7 @@ function buildAll() {
   const shown = state.data.products.filter((p) => matchesGender(p, state.prefs.gender) || p.id === state.sharedId);
   state.all = interleave(shown, brandOrder);
   const feedBrandIds = tabBrands(state.data.brands, state.all).map((b) => b.id);
-  if (state.prefs.brand !== "all" && !feedBrandIds.includes(state.prefs.brand)) state.prefs.brand = "all";
+  state.prefs.brands = normalizeBrands(state.prefs, feedBrandIds);
 }
 
 function setGender(gender) {
@@ -76,7 +76,7 @@ function takeSharedItem() {
     history.replaceState(null, "", location.pathname);
   } catch {}
   if (!state.data.products.some((p) => p.id === id)) return true;
-  state.prefs.brand = "all";
+  state.prefs.brands = [];
   state.prefs.type = "all";
   state.sharedId = id;
   return false;
@@ -90,38 +90,37 @@ function showState(msg) {
 // ---------- 필터 ----------
 
 function renderChips() {
-  const brands = $("#brandChips");
   const counts = {};
   for (const p of state.all) counts[p.brand] = (counts[p.brand] || 0) + 1;
-  // 상품을 직접 가져오지 못하는 브랜드(바로가기 전용·수집된 상품 없음)는 탭에서 뺀다
+  // 상품을 직접 가져오지 못하는 브랜드(바로가기 전용·수집된 상품 없음)는 목록에서 뺀다
   const feedBrands = tabBrands(state.data.brands, state.all);
   const items = [
     { id: "all", name: "ALL", count: state.all.length },
     ...feedBrands.map((b) => ({ id: b.id, name: b.name, count: counts[b.id] || 0, notice: staleNotice(b) })),
   ];
-  brands.replaceChildren(
-    ...items.map((b) =>
-      el(
-        "button",
-        {
-          class: b.notice ? "chip stale" : "chip",
-          type: "button",
-          title: b.notice,
-          "aria-pressed": String(state.prefs.brand === b.id),
-          onclick: () => setPref("brand", b.id),
-        },
-        b.name,
-        el("span", { class: "n", text: b.notice ? `${b.count} !` : b.count }),
-      ),
-    ),
+  const countText = (b) => (b.notice ? `${b.count} !` : String(b.count));
+
+  state.brandItems = items;
+
+  // 상단에는 지금 고른 브랜드만 짧게 보여주고, 누르면 전체 브랜드를 한 화면에 펼친다
+  const picked = items.filter((b) => state.prefs.brands.includes(b.id));
+  const inBrand = filterProducts(state.all, { brands: state.prefs.brands });
+  const stale = picked.filter((b) => b.notice);
+  const label = !picked.length ? "ALL" : picked.length === 1 ? picked[0].name : `${picked[0].name} 외 ${picked.length - 1}`;
+  const trigger = $("#openBrands");
+  trigger.replaceChildren(
+    el("span", { class: "label", text: label }),
+    el("span", { class: "n", text: stale.length ? `${inBrand.length} !` : String(inBrand.length) }),
+    el("span", { class: "caret", "aria-hidden": "true", text: "▾" }),
   );
+  trigger.classList.toggle("stale", stale.length > 0);
+  trigger.title = picked.map((b) => b.name).join(", ");
 
   // 수집에 실패한 브랜드를 고르면 오래된 데이터라는 걸 알려준다
   const notice = $("#brandNotice");
-  notice.textContent = staleNotice(feedBrands.find((b) => b.id === state.prefs.brand)) || "";
-  notice.hidden = !notice.textContent;
+  notice.replaceChildren(...stale.map((b) => el("div", { text: b.notice })));
+  notice.hidden = !stale.length;
 
-  const inBrand = filterProducts(state.all, { brand: state.prefs.brand });
   const types = $("#typeChips");
   types.replaceChildren(
     ...TYPE_FILTERS.filter((t) => t.id === "all" || inBrand.some((p) => p.type === t.id)).map((t) =>
@@ -130,13 +129,66 @@ function renderChips() {
   );
 }
 
+// ---------- 브랜드 고르기 (여러 개) ----------
+
+// 시트 안에서 고르는 중인 목록. 시트를 닫을 때 한 번에 적용한다.
+let draftBrands = [];
+
+function openBrandSheet() {
+  draftBrands = [...state.prefs.brands];
+  renderBrandSheet();
+  const sheet = $("#brandSheet");
+  sheet.showModal();
+  // 브랜드가 많아 목록이 길어져도 지금 고른 브랜드가 보이게
+  sheet.querySelector('.brand-tile[aria-pressed="true"]')?.scrollIntoView({ block: "nearest" });
+}
+
+function toggleDraft(id) {
+  if (id === "all") draftBrands = [];
+  else if (draftBrands.includes(id)) draftBrands = draftBrands.filter((b) => b !== id);
+  else draftBrands = [...draftBrands, id];
+  renderBrandSheet();
+}
+
+function renderBrandSheet() {
+  const items = state.brandItems || [];
+  const countText = (b) => (b.notice ? `${b.count} !` : String(b.count));
+  $("#brandGrid").replaceChildren(
+    ...items.map((b) =>
+      el(
+        "button",
+        {
+          class: ["brand-tile", b.id === "all" && "all", b.notice && "stale"].filter(Boolean).join(" "),
+          type: "button",
+          title: b.notice,
+          "aria-pressed": String(b.id === "all" ? !draftBrands.length : draftBrands.includes(b.id)),
+          onclick: () => toggleDraft(b.id),
+        },
+        el("span", { class: "check", "aria-hidden": "true" }),
+        el("span", { class: "label", text: b.name }),
+        el("span", { class: "n", text: countText(b) }),
+      ),
+    ),
+  );
+  const n = filterProducts(state.all, { brands: draftBrands }).length;
+  $("#applyBrands").textContent = draftBrands.length ? `${draftBrands.length}개 브랜드 · ${n}개 보기` : `전체 브랜드 · ${n}개 보기`;
+}
+
+function applyDraftBrands() {
+  const next = normalizeBrands({ brands: draftBrands }, state.brandItems.map((b) => b.id));
+  if (brandsKey(next) === brandsKey(state.prefs.brands)) return;
+  state.prefs.brands = next;
+  state.prefs.type = "all";
+  savePrefs(state.prefs);
+  render();
+}
+
 function setPref(key, value) {
   if (state.prefs[key] === value) {
     feed.scrollTo({ top: 0, behavior: "smooth" });
     return;
   }
   state.prefs[key] = value;
-  if (key === "brand") state.prefs.type = "all";
   savePrefs(state.prefs);
   render();
 }
@@ -173,7 +225,7 @@ function render() {
 }
 
 function positionKey() {
-  return `${state.prefs.gender}|${state.prefs.brand}|${state.prefs.type}`;
+  return `${state.prefs.gender}|${brandsKey(state.prefs.brands)}|${state.prefs.type}`;
 }
 
 function buildCard(tpl, p, index) {
@@ -457,6 +509,9 @@ function setupSettings() {
   buildMeasureInputs();
   buildGenderPicker();
   $("#openSettings").addEventListener("click", openSettings);
+  $("#openBrands").addEventListener("click", openBrandSheet);
+  // 적용 버튼·닫기·바깥 탭 어느 쪽으로 닫아도 고른 대로 적용한다
+  $("#brandSheet").addEventListener("close", applyDraftBrands);
   $("#settingsForm").addEventListener("submit", (e) => {
     e.preventDefault();
     state.profile = readSettingsForm();
